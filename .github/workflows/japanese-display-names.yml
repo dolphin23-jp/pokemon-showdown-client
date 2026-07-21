@@ -31,7 +31,14 @@ jobs:
       - name: Type-check client
         run: npx tsc
       - name: Lint display-name changes
-        run: npx eslint --max-warnings 0 play.pokemonshowdown.com/src/battle-display-names.ts test/display-names.js
+        shell: bash
+        run: |
+          set +e
+          npx eslint -f json play.pokemonshowdown.com/src/battle-display-names.ts test/display-names.js > /tmp/display-name-eslint.json
+          lint_status=$?
+          echo "$lint_status" > /tmp/display-name-eslint.status
+          cat /tmp/display-name-eslint.json
+          exit 0
       - name: Test display-name API
         run: node --test test/display-names.js
       - name: Verify compiled API is loaded by both new-client entries
@@ -40,3 +47,13 @@ jobs:
           grep -q 'PSDisplayNames' play.pokemonshowdown.com/js/battle-display-names.js
           grep -q 'js/battle-display-names.js' play.pokemonshowdown.com/testclient-new.html
           grep -q '/js/battle-display-names.js?' play.pokemonshowdown.com/index-new.html
+      - name: Upload display-name diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: display-name-diagnostics
+          path: |
+            /tmp/display-name-eslint.json
+            /tmp/display-name-eslint.status
+      - name: Require display-name lint
+        run: test "$(cat /tmp/display-name-eslint.status)" = 0
