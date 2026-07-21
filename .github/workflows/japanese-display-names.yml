@@ -8,6 +8,7 @@ on:
       - play.pokemonshowdown.com/src/battle-display-names.ts
       - test/display-names.js
       - docs/japanese-display-names.md
+      - config/japanese-display-name-api.json
       - .github/workflows/japanese-display-names.yml
   workflow_dispatch:
 
@@ -25,7 +26,14 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm test
+      - name: Build client
+        run: npm run build
+      - name: Type-check client
+        run: npx tsc
+      - name: Lint display-name changes
+        run: npx eslint --max-warnings 0 play.pokemonshowdown.com/src/battle-display-names.ts test/display-names.js
+      - name: Test display-name API
+        run: node --test test/display-names.js
       - name: Verify compiled API is loaded by both new-client entries
         run: |
           test -s play.pokemonshowdown.com/js/battle-display-names.js
