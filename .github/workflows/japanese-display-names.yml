@@ -3,10 +3,13 @@ name: Japanese display names
 on:
   pull_request:
     paths:
+      - package.json
+      - build-tools/generate-japanese-display-names.js
       - play.pokemonshowdown.com/index-new.html
       - play.pokemonshowdown.com/testclient-new.html
       - play.pokemonshowdown.com/src/battle-display-names.ts
       - test/display-names.js
+      - test/japanese-display-name-generator.js
       - docs/japanese-display-names.md
       - config/japanese-display-name-api.json
       - .github/workflows/japanese-display-names.yml
@@ -26,17 +29,25 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Build client
+      - name: Build client and generated Japanese maps
         run: npm run build
       - name: Type-check client
         run: npx tsc
       - name: Lint display-name changes
-        run: npx eslint --max-warnings 0 play.pokemonshowdown.com/src/battle-display-names.ts test/display-names.js
-      - name: Test display-name API
-        run: node --test test/display-names.js
-      - name: Verify compiled API is loaded by both new-client entries
+        run: >-
+          npx eslint --max-warnings 0
+          play.pokemonshowdown.com/src/battle-display-names.ts
+          build-tools/generate-japanese-display-names.js
+          test/display-names.js
+          test/japanese-display-name-generator.js
+      - name: Test display-name API and generator
+        run: node --test test/display-names.js test/japanese-display-name-generator.js
+      - name: Verify compiled API and generated data contract
         run: |
           test -s play.pokemonshowdown.com/js/battle-display-names.js
+          test -s play.pokemonshowdown.com/js/battle-display-names.meta.json
           grep -q 'PSDisplayNames' play.pokemonshowdown.com/js/battle-display-names.js
+          grep -q 'BattleJapaneseDisplayNames' play.pokemonshowdown.com/js/battle-display-names.js
+          grep -q '227b573712414a86ba299d322fa398fbb2893edc' play.pokemonshowdown.com/js/battle-display-names.js
           grep -q 'js/battle-display-names.js' play.pokemonshowdown.com/testclient-new.html
           grep -q '/js/battle-display-names.js?' play.pokemonshowdown.com/index-new.html
