@@ -19,8 +19,8 @@ type NamedDexEntry = Readonly<{ id: string, name: string }>;
 type DisplayNameTableKey = keyof JapaneseDisplayNameTables;
 
 type DisplayNameWindow = Window & {
-	BattleJapaneseDisplayNames?: JapaneseDisplayNameTables;
-	PSDisplayNames?: DisplayNameAPI;
+	BattleJapaneseDisplayNames?: JapaneseDisplayNameTables,
+	PSDisplayNames?: DisplayNameAPI,
 };
 
 const displayNameWindow = window as DisplayNameWindow;
