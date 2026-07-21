@@ -1,0 +1,13 @@
+{
+  "api_global": "PSDisplayNames",
+  "data_global": "BattleJapaneseDisplayNames",
+  "functions": [
+    "displaySpeciesName",
+    "displayMoveName",
+    "displayAbilityName",
+    "displayItemName"
+  ],
+  "fallback": "canonical-english-name",
+  "mutates_ids": false,
+  "protocol_safe": true
+}
