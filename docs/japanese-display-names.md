@@ -24,4 +24,14 @@ The generated metadata is written beside the bundle as `battle-display-names.met
 
 The generated maps are build artifacts and are not edited by hand. To update them, pin a new full source commit in both the generator and `config/japanese-display-name-api.json`, rebuild, review the count changes, and run the complete test suite.
 
-These helpers and generated maps are intentionally one-way display functions. They must not be used to construct WebSocket messages, `/choose`, `/team`, team Import/Export text, foul-play input, or Rust `poke-engine` input. The normalized ID and the original Dex object remain unchanged. Species forms or other entries absent from the generated source continue to fall back to the canonical English Dex name.
+## Battle choice controls
+
+Phase 1 T1-09 applies the generated names to the visible text of battle choice buttons:
+
+- ordinary, Z-Move, Max Move, and G-Max move buttons use Japanese move names when available
+- switch, team-preview, ally, and active-target buttons use Japanese species names when the visible text is a canonical species name
+- nicknames and names absent from the generated source remain unchanged
+
+The integration observes the battle controls after Preact renders them and replaces only the direct visible text node. It does not change `data-cmd`, `data-tooltip`, request JSON, move indexes, switch indexes, or any other attribute used to construct a choice. Re-renders and dynamically inserted controls are covered by a narrowly scoped `MutationObserver`.
+
+These helpers, generated maps, and battle-control substitutions are intentionally one-way display functions. They must not be used to construct WebSocket messages, `/choose`, `/team`, team Import/Export text, foul-play input, or Rust `poke-engine` input. The normalized ID and the original Dex object remain unchanged. Species forms or other entries absent from the generated source continue to fall back to the canonical English Dex name.

@@ -23,6 +23,23 @@
       "items": 1500
     }
   },
+  "battle_controls": {
+    "task": "T1-09",
+    "translated_categories": [
+      "moves",
+      "species"
+    ],
+    "selectors": [
+      "button.movebutton",
+      "button[data-tooltip^=\"switchpokemon|\"]",
+      "button[data-tooltip^=\"allypokemon|\"]",
+      "button[data-tooltip^=\"activepokemon|\"]"
+    ],
+    "display_text_only": true,
+    "mutates_commands": false,
+    "mutates_tooltips": false,
+    "preserves_unknown_names": true
+  },
   "mutates_ids": false,
   "protocol_safe": true
 }

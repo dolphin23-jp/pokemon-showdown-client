@@ -18,6 +18,14 @@ export interface DisplayNameAPI {
 type NamedDexEntry = Readonly<{ id: string, name: string }>;
 type DisplayNameTableKey = keyof JapaneseDisplayNameTables;
 
+const MOVE_BUTTON_SELECTOR = 'button.movebutton';
+const SPECIES_BUTTON_SELECTOR = [
+	'button[data-tooltip^="switchpokemon|"]',
+	'button[data-tooltip^="allypokemon|"]',
+	'button[data-tooltip^="activepokemon|"]',
+].join(', ');
+const BATTLE_CONTROL_SELECTOR = `${MOVE_BUTTON_SELECTOR}, ${SPECIES_BUTTON_SELECTOR}`;
+
 type DisplayNameWindow = Window & {
 	BattleJapaneseDisplayNames?: JapaneseDisplayNameTables,
 	PSDisplayNames?: DisplayNameAPI,
@@ -56,6 +64,76 @@ export function displayItemName(nameOrItem: string | Item | null | undefined): s
 	return displayName(Dex.items.get(nameOrItem), 'items');
 }
 
+function directTextNode(element: Element): Text | null {
+	for (const node of Array.from(element.childNodes)) {
+		if (node.nodeType === 3 && node.nodeValue?.trim()) return node as Text;
+	}
+	return null;
+}
+
+/**
+ * Replaces only the visible direct text node of a battle choice button.
+ * Command and tooltip attributes remain canonical English protocol data.
+ */
+export function localizeBattleControlButton(button: Element): boolean {
+	let translate: ((name: string) => string) | null = null;
+	if (button.matches(MOVE_BUTTON_SELECTOR)) {
+		translate = displayMoveName;
+	} else if (button.matches(SPECIES_BUTTON_SELECTOR)) {
+		translate = displaySpeciesName;
+	} else {
+		return false;
+	}
+
+	const textNode = directTextNode(button);
+	if (!textNode) return false;
+	const rawName = textNode.nodeValue || '';
+	const name = rawName.trim();
+	if (!name || name === '(empty slot)') return false;
+
+	const translatedName = translate(name);
+	if (!translatedName || translatedName === name) return false;
+	textNode.nodeValue = rawName.replace(name, translatedName);
+	return true;
+}
+
+export function localizeBattleControls(root: ParentNode): number {
+	const buttons: Element[] = [];
+	const rootElement = root as Element;
+	if (typeof rootElement.matches === 'function' && rootElement.matches(BATTLE_CONTROL_SELECTOR)) {
+		buttons.push(rootElement);
+	}
+	for (const button of Array.from(root.querySelectorAll(BATTLE_CONTROL_SELECTOR))) {
+		if (!buttons.includes(button)) buttons.push(button);
+	}
+
+	let changed = 0;
+	for (const button of buttons) {
+		if (localizeBattleControlButton(button)) changed++;
+	}
+	return changed;
+}
+
+function installBattleControlLocalization() {
+	if (typeof document === 'undefined' || typeof MutationObserver === 'undefined') return;
+	const root = document.body || document.documentElement;
+	if (!root) return;
+
+	localizeBattleControls(root);
+	const observer = new MutationObserver(records => {
+		for (const record of records) {
+			if (record.type === 'characterData' && record.target.parentElement) {
+				localizeBattleControlButton(record.target.parentElement);
+			}
+			for (const node of Array.from(record.addedNodes)) {
+				const candidate = node as ParentNode;
+				if (typeof candidate.querySelectorAll === 'function') localizeBattleControls(candidate);
+			}
+		}
+	});
+	observer.observe(root, { childList: true, subtree: true, characterData: true });
+}
+
 export const PSDisplayNames: DisplayNameAPI = Object.freeze({
 	displaySpeciesName,
 	displayMoveName,
@@ -64,3 +142,4 @@ export const PSDisplayNames: DisplayNameAPI = Object.freeze({
 });
 
 displayNameWindow.PSDisplayNames = PSDisplayNames;
+installBattleControlLocalization();
