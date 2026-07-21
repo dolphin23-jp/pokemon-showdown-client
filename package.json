@@ -10,7 +10,7 @@
   },
   "scripts": {
     "lint": "eslint --cache --cache-location caches/eslintcache.json",
-    "test": "npm run build && echo \"tsc... \\c\" && tsc && echo \"DONE\nзакeslint... \\c\" && eslint --cache --cache-location caches/eslintcache.json --max-warnings 0 && echo \"DONE\" && node --test test/*.js",
+    "test": "npm run build && echo \"tsc... \\c\" && tsc && echo \"DONE\neslint... \\c\" && eslint --cache --cache-location caches/eslintcache.json --max-warnings 0 && echo \"DONE\" && node --test test/*.js",
     "fix": "eslint --cache --cache-location caches/eslintcache.json --fix",
     "generate-japanese-display-names": "node build-tools/generate-japanese-display-names.js",
     "build": "node build && npm run generate-japanese-display-names",
