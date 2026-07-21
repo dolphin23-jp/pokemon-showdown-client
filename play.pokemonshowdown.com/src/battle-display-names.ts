@@ -98,13 +98,13 @@ export function localizeBattleControlButton(button: Element): boolean {
 }
 
 export function localizeBattleControls(root: ParentNode): number {
-	const buttons = new Set<Element>();
+	const buttons: Element[] = [];
 	const rootElement = root as Element;
 	if (typeof rootElement.matches === 'function' && rootElement.matches(BATTLE_CONTROL_SELECTOR)) {
-		buttons.add(rootElement);
+		buttons.push(rootElement);
 	}
 	for (const button of Array.from(root.querySelectorAll(BATTLE_CONTROL_SELECTOR))) {
-		buttons.add(button);
+		if (!buttons.includes(button)) buttons.push(button);
 	}
 
 	let changed = 0;
