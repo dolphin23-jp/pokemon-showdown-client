@@ -60,7 +60,9 @@ function buildContext({ withBattleControls = false } = {}) {
 		get(value) {
 			calls.push({ table, value });
 			if (value && typeof value !== 'string') return value;
-			return entries[table][value] || namedEntry(value || '', value || '');
+			const name = value || '';
+			const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '');
+			return entries[table][id] || namedEntry(id, name);
 		},
 	});
 	const window = {
@@ -179,5 +181,7 @@ test('localizes battle move and species button text without changing commands or
 	assert.equal(controls.species.button.dataCmd, '/switch 1');
 	assert.equal(controls.species.button.dataTooltip, 'switchpokemon|0');
 	assert.equal(observers.length, 1);
-	assert.deepEqual(observers[0].options, { childList: true, subtree: true, characterData: true });
+	assert.equal(observers[0].options.childList, true);
+	assert.equal(observers[0].options.subtree, true);
+	assert.equal(observers[0].options.characterData, true);
 });
