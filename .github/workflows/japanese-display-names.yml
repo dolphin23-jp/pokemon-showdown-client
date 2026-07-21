@@ -1,0 +1,34 @@
+name: Japanese display names
+
+on:
+  pull_request:
+    paths:
+      - play.pokemonshowdown.com/index-new.html
+      - play.pokemonshowdown.com/testclient-new.html
+      - play.pokemonshowdown.com/src/battle-display-names.ts
+      - test/display-names.js
+      - docs/japanese-display-names.md
+      - .github/workflows/japanese-display-names.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Verify compiled API is loaded by both new-client entries
+        run: |
+          test -s play.pokemonshowdown.com/js/battle-display-names.js
+          grep -q 'PSDisplayNames' play.pokemonshowdown.com/js/battle-display-names.js
+          grep -q 'js/battle-display-names.js' play.pokemonshowdown.com/testclient-new.html
+          grep -q '/js/battle-display-names.js?' play.pokemonshowdown.com/index-new.html
