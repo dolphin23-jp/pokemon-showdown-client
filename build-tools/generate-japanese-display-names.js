@@ -1,0 +1,248 @@
+'use strict';
+
+const fs = require('node:fs');
+const https = require('node:https');
+const path = require('node:path');
+
+const SOURCE_REPOSITORY = 'PokeAPI/pokeapi';
+const SOURCE_COMMIT = '227b573712414a86ba299d322fa398fbb2893edc';
+const JAPANESE_LANGUAGE_ID = '11';
+const SOURCE_ROOT = `https://raw.githubusercontent.com/${SOURCE_REPOSITORY}/${SOURCE_COMMIT}/data/v2/csv`;
+const COMPILED_API_PATH = path.resolve(
+	__dirname,
+	'../play.pokemonshowdown.com/js/battle-display-names.js'
+);
+const METADATA_PATH = path.resolve(
+	__dirname,
+	'../play.pokemonshowdown.com/js/battle-display-names.meta.json'
+);
+const GENERATED_START = '// BEGIN GENERATED JAPANESE DISPLAY NAMES';
+const GENERATED_END = '// END GENERATED JAPANESE DISPLAY NAMES';
+
+const TABLE_SPECS = Object.freeze({
+	species: Object.freeze({
+		identifiers: 'pokemon_species.csv',
+		names: 'pokemon_species_names.csv',
+		nameEntityColumn: 'pokemon_species_id',
+		minimumCount: 1000,
+	}),
+	moves: Object.freeze({
+		identifiers: 'moves.csv',
+		names: 'move_names.csv',
+		nameEntityColumn: 'move_id',
+		minimumCount: 800,
+	}),
+	abilities: Object.freeze({
+		identifiers: 'abilities.csv',
+		names: 'ability_names.csv',
+		nameEntityColumn: 'ability_id',
+		minimumCount: 250,
+	}),
+	items: Object.freeze({
+		identifiers: 'items.csv',
+		names: 'item_names.csv',
+		nameEntityColumn: 'item_id',
+		minimumCount: 1500,
+	}),
+});
+
+function parseCsv(text) {
+	const rows = [];
+	let row = [];
+	let field = '';
+	let quoted = false;
+
+	for (let index = 0; index < text.length; index++) {
+		const character = text[index];
+		if (quoted) {
+			if (character === '"') {
+				if (text[index + 1] === '"') {
+					field += '"';
+					index++;
+				} else {
+					quoted = false;
+				}
+			} else {
+				field += character;
+			}
+			continue;
+		}
+
+		if (character === '"' && field === '') {
+			quoted = true;
+		} else if (character === ',') {
+			row.push(field);
+			field = '';
+		} else if (character === '\n') {
+			row.push(field);
+			rows.push(row);
+			row = [];
+			field = '';
+		} else if (character !== '\r') {
+			field += character;
+		}
+	}
+
+	if (quoted) throw new Error('Unterminated quoted CSV field');
+	if (field !== '' || row.length) {
+		row.push(field);
+		rows.push(row);
+	}
+	if (!rows.length) return [];
+
+	const headers = rows.shift();
+	return rows
+		.filter(values => values.some(value => value !== ''))
+		.map(values => Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ''])));
+}
+
+function toID(identifier) {
+	return String(identifier || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
+
+function buildDisplayTable(identifierCsv, namesCsv, spec) {
+	const identifiers = parseCsv(identifierCsv);
+	const names = parseCsv(namesCsv);
+	const japaneseNames = new Map();
+
+	for (const row of names) {
+		if (row.local_language_id !== JAPANESE_LANGUAGE_ID || !row.name) continue;
+		japaneseNames.set(row[spec.nameEntityColumn], row.name);
+	}
+
+	const entries = [];
+	const seen = new Map();
+	for (const row of identifiers) {
+		const id = toID(row.identifier);
+		const japaneseName = japaneseNames.get(row.id);
+		if (!id || !japaneseName) continue;
+		const previous = seen.get(id);
+		if (previous && previous !== japaneseName) {
+			throw new Error(`Conflicting Japanese names for normalized ID ${id}`);
+		}
+		seen.set(id, japaneseName);
+		entries.push([id, japaneseName]);
+	}
+
+	entries.sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0);
+	return Object.fromEntries(entries);
+}
+
+function fetchText(url, redirectCount = 0) {
+	return new Promise((resolve, reject) => {
+		https.get(url, response => {
+			if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+				response.resume();
+				if (redirectCount >= 3) {
+					reject(new Error(`Too many redirects while fetching ${url}`));
+					return;
+				}
+				resolve(fetchText(new URL(response.headers.location, url).toString(), redirectCount + 1));
+				return;
+			}
+			if (response.statusCode !== 200) {
+				response.resume();
+				reject(new Error(`HTTP ${response.statusCode} while fetching ${url}`));
+				return;
+			}
+			response.setEncoding('utf8');
+			let body = '';
+			response.on('data', chunk => {
+				body += chunk;
+			});
+			response.on('end', () => resolve(body));
+		}).on('error', reject);
+	});
+}
+
+async function generateTables(fetcher = fetchText) {
+	const tables = {};
+	for (const [tableName, spec] of Object.entries(TABLE_SPECS)) {
+		const [identifierCsv, namesCsv] = await Promise.all([
+			fetcher(`${SOURCE_ROOT}/${spec.identifiers}`),
+			fetcher(`${SOURCE_ROOT}/${spec.names}`),
+		]);
+		const table = buildDisplayTable(identifierCsv, namesCsv, spec);
+		const count = Object.keys(table).length;
+		if (count < spec.minimumCount) {
+			throw new Error(`${tableName} generated only ${count} names; expected at least ${spec.minimumCount}`);
+		}
+		tables[tableName] = table;
+	}
+	return tables;
+}
+
+function renderDataset(tables) {
+	const serialized = JSON.stringify(tables);
+	return `${GENERATED_START}\n` +
+		`// Generated by build-tools/generate-japanese-display-names.js\n` +
+		`// Source: ${SOURCE_REPOSITORY}@${SOURCE_COMMIT}, language id ${JAPANESE_LANGUAGE_ID}\n` +
+		`(function () {\n` +
+		`\tif (window.BattleJapaneseDisplayNames) return;\n` +
+		`\tconst tables = ${serialized};\n` +
+		`\tfor (const table of Object.values(tables)) Object.freeze(table);\n` +
+		`\twindow.BattleJapaneseDisplayNames = Object.freeze(tables);\n` +
+		`})();\n` +
+		`${GENERATED_END}\n`;
+}
+
+function stripGeneratedDataset(compiledApi) {
+	const start = compiledApi.indexOf(GENERATED_START);
+	const end = compiledApi.indexOf(GENERATED_END);
+	if (start === -1 && end === -1) return compiledApi;
+	if (start === -1 || end === -1 || end < start) {
+		throw new Error('Malformed generated Japanese display-name block');
+	}
+	return `${compiledApi.slice(0, start)}${compiledApi.slice(end + GENERATED_END.length)}`.trimStart();
+}
+
+function buildMetadata(tables) {
+	return {
+		schema_version: 1,
+		source_repository: SOURCE_REPOSITORY,
+		source_commit: SOURCE_COMMIT,
+		language_id: Number(JAPANESE_LANGUAGE_ID),
+		output: 'play.pokemonshowdown.com/js/battle-display-names.js',
+		counts: Object.fromEntries(
+			Object.entries(tables).map(([name, table]) => [name, Object.keys(table).length])
+		),
+		generated_data_only: true,
+		mutates_ids: false,
+		protocol_safe: true,
+	};
+}
+
+async function main() {
+	if (!fs.existsSync(COMPILED_API_PATH)) {
+		throw new Error('Compile battle-display-names.ts before generating Japanese maps');
+	}
+	const tables = await generateTables();
+	const compiledApi = stripGeneratedDataset(fs.readFileSync(COMPILED_API_PATH, 'utf8'));
+	fs.writeFileSync(COMPILED_API_PATH, `${renderDataset(tables)}\n${compiledApi}`);
+	fs.writeFileSync(METADATA_PATH, `${JSON.stringify(buildMetadata(tables), null, 2)}\n`);
+	const counts = Object.entries(tables).map(([name, table]) => `${name}=${Object.keys(table).length}`);
+	console.log(`Generated Japanese display names (${counts.join(', ')})`);
+}
+
+if (require.main === module) {
+	main().catch(error => {
+		console.error(error);
+		process.exitCode = 1;
+	});
+}
+
+module.exports = {
+	GENERATED_END,
+	GENERATED_START,
+	JAPANESE_LANGUAGE_ID,
+	SOURCE_COMMIT,
+	SOURCE_REPOSITORY,
+	TABLE_SPECS,
+	buildDisplayTable,
+	buildMetadata,
+	generateTables,
+	parseCsv,
+	renderDataset,
+	stripGeneratedDataset,
+	toID,
+};

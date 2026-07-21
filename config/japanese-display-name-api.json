@@ -8,6 +8,21 @@
     "displayItemName"
   ],
   "fallback": "canonical-english-name",
+  "generated_data": {
+    "generator": "build-tools/generate-japanese-display-names.js",
+    "command": "npm run generate-japanese-display-names",
+    "source_repository": "PokeAPI/pokeapi",
+    "source_commit": "227b573712414a86ba299d322fa398fbb2893edc",
+    "language_id": 11,
+    "compiled_output": "play.pokemonshowdown.com/js/battle-display-names.js",
+    "metadata_output": "play.pokemonshowdown.com/js/battle-display-names.meta.json",
+    "minimum_counts": {
+      "species": 1000,
+      "moves": 800,
+      "abilities": 250,
+      "items": 1500
+    }
+  },
   "mutates_ids": false,
   "protocol_safe": true
 }
