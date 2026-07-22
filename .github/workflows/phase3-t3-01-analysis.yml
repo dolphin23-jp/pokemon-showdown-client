@@ -5,12 +5,13 @@ on:
     paths:
       - play.pokemonshowdown.com/src/battle-text-ja.js
       - build-tools/analyze-phase3-t3-01.mjs
+      - build-tools/integrate-phase3-t3-01.mjs
       - build-tools/phase3-t3-01-battle-text.fragment.js
       - .github/workflows/phase3-t3-01-analysis.yml
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   validate:
@@ -20,8 +21,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          fetch-depth: 1
+          fetch-depth: 0
           path: client
+
+      - name: Check out pre-T3-01 client baseline
+        uses: actions/checkout@v4
+        with:
+          repository: dolphin23-jp/pokemon-showdown-client
+          ref: d2939675265dabb8e42c5b8ade059115ee3086db
+          fetch-depth: 1
+          path: baseline-client
 
       - name: Check out T3-00 server baseline
         uses: actions/checkout@v4
@@ -51,7 +60,24 @@ jobs:
             server \
             "$RUNNER_TEMP/phase-3-t3-01-targets.json"
 
-      - name: Verify translated key set and placeholders
+      - name: Integrate translations into the canonical object
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        working-directory: client
+        env:
+          HEAD_BRANCH: ${{ github.head_ref }}
+        run: |
+          node build-tools/integrate-phase3-t3-01.mjs
+          git add play.pokemonshowdown.com/src/battle-text-ja.js
+          if git diff --cached --quiet; then
+            echo "T3-01 translations already integrated directly."
+          else
+            git config user.name github-actions[bot]
+            git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+            git commit -m "Integrate Phase 3 battle text coverage"
+            git push origin "HEAD:${HEAD_BRANCH}"
+          fi
+
+      - name: Verify translated keys, placeholders, and existing entries
         working-directory: client
         run: |
           node --input-type=module <<'NODE'
@@ -61,84 +87,85 @@ jobs:
           const targetData = JSON.parse(fs.readFileSync(
             process.env.RUNNER_TEMP + '/phase-3-t3-01-targets.json', 'utf8'
           ));
-          const filePath = 'play.pokemonshowdown.com/src/battle-text-ja.js';
-          const sourceText = fs.readFileSync(filePath, 'utf8');
-          const sourceFile = ts.createSourceFile(filePath, sourceText, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
 
-          function findObject(name) {
-            let found = null;
+          function readBattleText(filePath) {
+            const sourceText = fs.readFileSync(filePath, 'utf8');
+            if (sourceText.includes('PHASE3_T3_01_BATTLE_TEXT')) {
+              throw new Error(`Temporary T3-01 runtime merge remains in ${filePath}`);
+            }
+            const sourceFile = ts.createSourceFile(
+              filePath, sourceText, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS
+            );
+            let object = null;
             function visit(node) {
-              if (found) return;
-              if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.name.text === name) {
+              if (object) return;
+              if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) &&
+                node.name.text === 'JAPANESE_BATTLE_TEXT') {
                 if (!node.initializer || !ts.isObjectLiteralExpression(node.initializer)) {
-                  throw new Error(`${name} is not an object literal`);
+                  throw new Error('JAPANESE_BATTLE_TEXT is not an object literal');
                 }
-                found = node.initializer;
+                object = node.initializer;
                 return;
               }
               ts.forEachChild(node, visit);
             }
             visit(sourceFile);
-            if (!found) throw new Error(`Missing ${name}`);
-            return found;
-          }
+            if (!object) throw new Error(`Missing JAPANESE_BATTLE_TEXT in ${filePath}`);
 
-          function keyName(name) {
-            if (ts.isIdentifier(name) || ts.isStringLiteral(name) || ts.isNoSubstitutionTemplateLiteral(name)) {
-              return name.text;
+            function keyName(name) {
+              if (ts.isIdentifier(name) || ts.isStringLiteral(name) ||
+                ts.isNoSubstitutionTemplateLiteral(name)) return name.text;
+              throw new Error(`Unsupported key ${name.getText(sourceFile)}`);
             }
-            throw new Error(`Unsupported key ${name.getText(sourceFile)}`);
-          }
-
-          function readObject(node) {
-            const result = new Map();
-            for (const property of node.properties) {
-              if (!ts.isPropertyAssignment(property)) continue;
-              const key = keyName(property.name);
-              if (ts.isObjectLiteralExpression(property.initializer)) {
-                result.set(key, readObject(property.initializer));
-              } else if (ts.isStringLiteral(property.initializer) ||
-                ts.isNoSubstitutionTemplateLiteral(property.initializer)) {
-                result.set(key, property.initializer.text);
+            function readObject(node) {
+              const result = new Map();
+              for (const property of node.properties) {
+                if (!ts.isPropertyAssignment(property)) continue;
+                const key = keyName(property.name);
+                if (ts.isObjectLiteralExpression(property.initializer)) {
+                  result.set(key, readObject(property.initializer));
+                } else if (ts.isStringLiteral(property.initializer) ||
+                  ts.isNoSubstitutionTemplateLiteral(property.initializer)) {
+                  result.set(key, property.initializer.text);
+                }
               }
+              return result;
             }
-            return result;
+            return readObject(object);
           }
 
-          const baseline = readObject(findObject('JAPANESE_BATTLE_TEXT'));
-          const additions = readObject(findObject('PHASE3_T3_01_BATTLE_TEXT'));
-          const expected = new Map(targetData.targets.map(target => [
-            `${target.namespace}.${target.key}`, target,
-          ]));
-          const actual = new Map();
-          for (const [namespace, fields] of additions) {
-            if (!(fields instanceof Map)) throw new Error(`${namespace} is not an object`);
-            for (const [key, value] of fields) {
-              const marker = `${namespace}.${key}`;
-              if (actual.has(marker)) throw new Error(`Duplicate translated key ${marker}`);
-              actual.set(marker, value);
-              if (baseline.get(namespace) instanceof Map && baseline.get(namespace).has(key)) {
-                throw new Error(`Existing Japanese key would be overwritten: ${marker}`);
+          const current = readBattleText('play.pokemonshowdown.com/src/battle-text-ja.js');
+          const baseline = readBattleText('../baseline-client/play.pokemonshowdown.com/src/battle-text-ja.js');
+
+          for (const [namespace, baselineFields] of baseline) {
+            const currentFields = current.get(namespace);
+            if (!(baselineFields instanceof Map) || !(currentFields instanceof Map)) {
+              throw new Error(`Existing namespace changed shape: ${namespace}`);
+            }
+            for (const [key, baselineValue] of baselineFields) {
+              if (currentFields.get(key) !== baselineValue) {
+                throw new Error(`Existing Japanese entry changed: ${namespace}.${key}`);
               }
             }
           }
-          const missing = [...expected.keys()].filter(key => !actual.has(key));
-          const extra = [...actual.keys()].filter(key => !expected.has(key));
-          if (missing.length || extra.length) {
-            throw new Error(`T3-01 key mismatch; missing=${missing.join(',')} extra=${extra.join(',')}`);
-          }
+
           const placeholder = /\[[A-Z][A-Z0-9]*\]/g;
-          for (const [marker, value] of actual) {
-            const expectedPlaceholders = expected.get(marker).placeholders;
+          for (const target of targetData.targets) {
+            const value = current.get(target.namespace)?.get(target.key);
+            if (typeof value !== 'string') {
+              throw new Error(`Missing T3-01 translation: ${target.namespace}.${target.key}`);
+            }
             const actualPlaceholders = value.match(placeholder) || [];
-            if (JSON.stringify(actualPlaceholders) !== JSON.stringify(expectedPlaceholders)) {
+            if (JSON.stringify(actualPlaceholders) !== JSON.stringify(target.placeholders)) {
               throw new Error(
-                `${marker} placeholders differ: expected ${JSON.stringify(expectedPlaceholders)}, ` +
-                `got ${JSON.stringify(actualPlaceholders)}`
+                `${target.namespace}.${target.key} placeholders differ: expected ` +
+                `${JSON.stringify(target.placeholders)}, got ${JSON.stringify(actualPlaceholders)}`
               );
             }
           }
-          console.log(`Verified ${actual.size} T3-01 additions with exact placeholders and no overwrites.`);
+          console.log(
+            `Verified ${targetData.totalTargets} direct additions, exact placeholders, and unchanged existing entries.`
+          );
           NODE
 
       - name: Regenerate T3-00 inventory against client head
@@ -172,7 +199,9 @@ jobs:
           if (remaining.length) {
             throw new Error(`Remaining T3-01 gaps: ${remaining.map(x => `${x.namespace}.${x.key}`).join(', ')}`);
           }
-          console.log(`Verified zero remaining gaps across ${targets.totalTargets} T3-01 keys.`);
+          console.log(
+            `Verified zero remaining T3-01 gaps; total inventory is now ${inventory.totalMissing}.`
+          );
           NODE
 
       - name: Upload T3-01 validation artifacts
