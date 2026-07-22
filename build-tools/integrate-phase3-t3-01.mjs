@@ -48,6 +48,10 @@ function propertyMap(object, sourceFile) {
 	return result;
 }
 
+function withoutTrailingComma(text) {
+	return text.replace(/,\s*$/, '');
+}
+
 const target = parse(targetPath);
 if (!target.text.includes('const PHASE3_T3_01_BATTLE_TEXT = {')) {
 	console.log('T3-01 translations are already integrated directly.');
@@ -71,7 +75,7 @@ for (const additionNamespace of additionObject.properties) {
 	}
 	const existingNamespace = mainNamespaces.get(namespace);
 	if (!existingNamespace) {
-		newNamespaceTexts.push(additionNamespace.getText(fragment.file));
+		newNamespaceTexts.push(withoutTrailingComma(additionNamespace.getText(fragment.file)));
 		integratedKeys += additionNamespace.initializer.properties.length;
 		continue;
 	}
@@ -84,20 +88,20 @@ for (const additionNamespace of additionObject.properties) {
 		if (!ts.isPropertyAssignment(additionProperty)) continue;
 		const key = propertyName(additionProperty.name, fragment.file);
 		if (existingKeys.has(key)) throw new Error(`T3-01 would overwrite ${namespace}.${key}`);
-		additions.push(additionProperty.getText(fragment.file));
+		additions.push(withoutTrailingComma(additionProperty.getText(fragment.file)));
 		integratedKeys++;
 	}
 	if (!additions.length) continue;
 	const initializer = existingNamespace.initializer;
 	const multiline = initializer.getText(target.file).includes('\n');
 	const insertion = multiline ?
-		additions.map(text => `\n\t\t\t${text}`).join('') :
+		additions.map(text => `\n\t\t\t${text},`).join('') :
 		`${initializer.properties.length ? ', ' : ''}${additions.join(', ')}`;
 	edits.push({position: initializer.end - 1, text: insertion});
 }
 
 if (newNamespaceTexts.length) {
-	const insertion = newNamespaceTexts.map(text => `\n\t\t${text}`).join('');
+	const insertion = newNamespaceTexts.map(text => `\n\t\t${text},`).join('');
 	edits.push({position: mainObject.end - 1, text: insertion});
 }
 
@@ -138,6 +142,10 @@ for (const edit of edits) {
 }
 if (output.includes('PHASE3_T3_01_BATTLE_TEXT')) {
 	throw new Error('Temporary T3-01 merge object remains after integration');
+}
+const parsedOutput = ts.createSourceFile(targetPath, output, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+if (parsedOutput.parseDiagnostics.length) {
+	throw new Error(`Integrated output has syntax errors: ${parsedOutput.parseDiagnostics[0].messageText}`);
 }
 fs.writeFileSync(targetPath, output);
 console.log(`Integrated ${integratedKeys} T3-01 keys directly into JAPANESE_BATTLE_TEXT.`);
