@@ -119,7 +119,7 @@ const TEAMBUILDER_TEXT: Readonly<Record<string, string>> = Object.freeze({
 	'Team name:': 'チーム名:',
 	'Local': 'ローカル',
 	'Public': '公開',
-	'Upload changes': '変更をアップロード',
+	'Upload changes': 'アップロード',
 	'Revert to uploaded version': 'アップロード版に戻す',
 	'Compare': '比較',
 	'(all)': '（すべて）',
@@ -420,6 +420,19 @@ export function localizeTeambuilder(root: ParentNode): number {
 	return changed;
 }
 
+/**
+ * Search result lists are virtualized and may replace their uncontrolled HTML
+ * after the first MutationObserver callback. Retry for a few render frames so
+ * display-only Japanese text is applied to the final connected rows.
+ */
+function scheduleTeambuilderLocalization(root: ParentNode, attempts = 4): void {
+	localizeTeambuilder(root);
+	if (attempts <= 0) return;
+	const schedule = typeof requestAnimationFrame === 'function' ?
+		requestAnimationFrame : (callback: FrameRequestCallback) => setTimeout(callback, 0);
+	schedule(() => scheduleTeambuilderLocalization(root, attempts - 1));
+}
+
 function installDisplayLocalization() {
 	if (typeof document === 'undefined' || typeof MutationObserver === 'undefined') return;
 	const root = document.body || document.documentElement;
@@ -431,6 +444,12 @@ function installDisplayLocalization() {
 	document.addEventListener('focus', event => {
 		const target = event.target as HTMLInputElement | null;
 		if (target?.matches?.(TEAMBUILDER_INPUT_SELECTOR)) restoreTeambuilderInput(target);
+	}, true);
+	document.addEventListener('input', event => {
+		const target = event.target as HTMLInputElement | null;
+		if (!target?.matches?.(TEAMBUILDER_INPUT_SELECTOR)) return;
+		const scope = target.closest(TEAMBUILDER_SCOPE_SELECTOR) || root;
+		setTimeout(() => scheduleTeambuilderLocalization(scope), 0);
 	}, true);
 	document.addEventListener('focusout', event => {
 		const target = event.target as HTMLInputElement | null;
@@ -449,7 +468,7 @@ function installDisplayLocalization() {
 				const candidate = (node.nodeType === 3 ? node.parentElement : node) as ParentNode | null;
 				if (candidate && typeof candidate.querySelectorAll === 'function') {
 					localizeBattleControls(candidate);
-					localizeTeambuilder(candidate);
+					scheduleTeambuilderLocalization(candidate, 2);
 				}
 			}
 		}
