@@ -61,6 +61,23 @@
     "mutates_protocol_args": false,
     "preserves_number_placeholders": true
   },
+  "teambuilder": {
+    "translated_categories": [
+      "species",
+      "moves",
+      "abilities",
+      "items",
+      "fixed UI labels"
+    ],
+    "display_name_api": "PSDisplayNames",
+    "display_text_only": true,
+    "canonical_input_restored_before_edit": true,
+    "localizes_search_result_text_only": true,
+    "mutates_search_data_entry": false,
+    "mutates_import_export_text": false,
+    "mutates_packed_team": false,
+    "mutates_saved_team_data": false
+  },
   "mutates_ids": false,
   "protocol_safe": true
 }
