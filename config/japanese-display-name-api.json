@@ -40,6 +40,27 @@
     "mutates_tooltips": false,
     "preserves_unknown_names": true
   },
+  "battle_log": {
+    "template_source": "play.pokemonshowdown.com/src/battle-text-ja.js",
+    "translated_categories": [
+      "battle flow",
+      "moves",
+      "switching",
+      "fainting",
+      "effectiveness",
+      "critical hits",
+      "status conditions",
+      "weather",
+      "terrain",
+      "stat changes",
+      "damage and healing",
+      "items and abilities"
+    ],
+    "display_name_api": "PSDisplayNames",
+    "display_text_only": true,
+    "mutates_protocol_args": false,
+    "preserves_number_placeholders": true
+  },
   "mutates_ids": false,
   "protocol_safe": true
 }
