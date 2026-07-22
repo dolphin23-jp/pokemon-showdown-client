@@ -93,25 +93,57 @@ function loadAssigned(relativePath, variableName) {
 	return result;
 }
 
+function mergeTables(tables) {
+	const result = new Map();
+	for (const table of tables) {
+		for (const [namespace, fields] of table) {
+			const merged = result.get(namespace) || new Map();
+			for (const [key, value] of fields) merged.set(key, value);
+			result.set(namespace, merged);
+		}
+	}
+	return result;
+}
+
+function resolveTemplate(table, namespace, key, seen = []) {
+	const marker = `${namespace}.${key}`;
+	if (seen.includes(marker)) throw new Error(`Alias cycle: ${[...seen, marker].join(' -> ')}`);
+	const raw = table.get(namespace)?.get(key);
+	if (raw === undefined) throw new Error(`Missing alias target: ${marker}`);
+	if (!raw.startsWith('#')) return {resolvedEnglish: raw, aliasChain: seen};
+	const alias = raw.slice(1).split('.');
+	const aliasNamespace = alias[0];
+	const aliasKey = alias[1] || key;
+	return resolveTemplate(table, aliasNamespace, aliasKey, [...seen, marker]);
+}
+
+const defaultTable = loadDefault();
+const movesTable = loadAssigned('data/text/moves.ts', 'MovesText');
+const abilitiesTable = loadAssigned('data/text/abilities.ts', 'AbilitiesText');
+const itemsTable = loadAssigned('data/text/items.ts', 'ItemsText');
 const sources = [
-	['default', loadDefault()],
-	['abilities', loadAssigned('data/text/abilities.ts', 'AbilitiesText')],
-	['items', loadAssigned('data/text/items.ts', 'ItemsText')],
+	['default', defaultTable],
+	['abilities', abilitiesTable],
+	['items', itemsTable],
 ];
+const allEnglish = mergeTables([defaultTable, movesTable, abilitiesTable, itemsTable]);
 const targets = [];
 const unmatched = [];
 for (const [namespace, keys] of Object.entries(inventory.byNamespace)) {
 	for (const key of keys) {
 		let matched = false;
 		for (const [source, table] of sources) {
-			const english = table.get(namespace)?.get(key);
-			if (english === undefined) continue;
+			const rawEnglish = table.get(namespace)?.get(key);
+			if (rawEnglish === undefined) continue;
+			const {resolvedEnglish, aliasChain} = resolveTemplate(allEnglish, namespace, key);
 			targets.push({
 				source,
 				namespace,
 				key,
-				english,
-				placeholders: english.match(PLACEHOLDER) || [],
+				rawEnglish,
+				resolvedEnglish,
+				aliasChain,
+				placeholders: resolvedEnglish.match(PLACEHOLDER) || [],
 			});
 			matched = true;
 		}
