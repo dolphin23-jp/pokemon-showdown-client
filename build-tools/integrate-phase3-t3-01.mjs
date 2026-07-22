@@ -48,11 +48,11 @@ function propertyMap(object, sourceFile) {
 	return result;
 }
 
-function indentBlock(text, prefix) {
-	return text.split('\n').map(line => prefix + line).join('\n');
-}
-
 const target = parse(targetPath);
+if (!target.text.includes('const PHASE3_T3_01_BATTLE_TEXT = {')) {
+	console.log('T3-01 translations are already integrated directly.');
+	process.exit(0);
+}
 const fragment = parse(fragmentPath);
 const mainDeclaration = findVariableObject(target.file, 'JAPANESE_BATTLE_TEXT');
 const additionDeclaration = findVariableObject(fragment.file, 'PHASE3_T3_01_BATTLE_TEXT');
@@ -71,8 +71,7 @@ for (const additionNamespace of additionObject.properties) {
 	}
 	const existingNamespace = mainNamespaces.get(namespace);
 	if (!existingNamespace) {
-		const propertyText = additionNamespace.getText(fragment.file);
-		newNamespaceTexts.push(propertyText);
+		newNamespaceTexts.push(additionNamespace.getText(fragment.file));
 		integratedKeys += additionNamespace.initializer.properties.length;
 		continue;
 	}
@@ -90,10 +89,9 @@ for (const additionNamespace of additionObject.properties) {
 	}
 	if (!additions.length) continue;
 	const initializer = existingNamespace.initializer;
-	const existingText = initializer.getText(target.file);
-	const multiline = existingText.includes('\n');
+	const multiline = initializer.getText(target.file).includes('\n');
 	const insertion = multiline ?
-		`${additions.map(text => `\n\t\t\t${text}`).join('')}` :
+		additions.map(text => `\n\t\t\t${text}`).join('') :
 		`${initializer.properties.length ? ', ' : ''}${additions.join(', ')}`;
 	edits.push({position: initializer.end - 1, text: insertion});
 }
@@ -103,11 +101,9 @@ if (newNamespaceTexts.length) {
 	edits.push({position: mainObject.end - 1, text: insertion});
 }
 
-// Remove a previously staged runtime-merge block, if present.
 let phaseStatement = null;
 let mergeStatement = null;
 for (const statement of target.file.statements) {
-	// The declarations live inside the top-level IIFE, so walk its block below.
 	if (!ts.isExpressionStatement(statement) || !ts.isCallExpression(statement.expression)) continue;
 	const expression = statement.expression.expression;
 	if (!ts.isParenthesizedExpression(expression) || !ts.isArrowFunction(expression.expression)) continue;
@@ -121,22 +117,19 @@ for (const statement of target.file.statements) {
 				}
 			}
 		}
-		if (phaseStatement && ts.isForOfStatement(inner) && inner.pos > phaseStatement.pos) {
-			const innerText = inner.getText(target.file);
-			if (innerText.includes('PHASE3_T3_01_BATTLE_TEXT')) {
-				mergeStatement = inner;
-				break;
-			}
+		if (phaseStatement && ts.isForOfStatement(inner) && inner.pos > phaseStatement.pos &&
+			inner.getText(target.file).includes('PHASE3_T3_01_BATTLE_TEXT')) {
+			mergeStatement = inner;
+			break;
 		}
 	}
 }
-if (phaseStatement) {
-	const removalEnd = mergeStatement ? mergeStatement.end : phaseStatement.end;
-	let start = phaseStatement.getFullStart();
-	let end = removalEnd;
-	while (end < target.text.length && (target.text[end] === '\n' || target.text[end] === '\r')) end++;
-	edits.push({position: start, end, text: ''});
+if (!phaseStatement || !mergeStatement) throw new Error('Temporary T3-01 merge block was not found');
+let removalEnd = mergeStatement.end;
+while (removalEnd < target.text.length && (target.text[removalEnd] === '\n' || target.text[removalEnd] === '\r')) {
+	removalEnd++;
 }
+edits.push({position: phaseStatement.getFullStart(), end: removalEnd, text: ''});
 
 edits.sort((a, b) => b.position - a.position);
 let output = target.text;
