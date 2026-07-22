@@ -1,25 +1,26 @@
-name: Phase 3 T3-01 target analysis
+name: Phase 3 T3-01 validation
 
 on:
   pull_request:
     paths:
+      - play.pokemonshowdown.com/src/battle-text-ja.js
       - build-tools/analyze-phase3-t3-01.mjs
       - build-tools/phase3-t3-01-battle-text.fragment.js
       - .github/workflows/phase3-t3-01-analysis.yml
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  analyze:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - name: Check out client branch
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          fetch-depth: 0
+          fetch-depth: 1
           path: client
 
       - name: Check out T3-00 server baseline
@@ -27,6 +28,7 @@ jobs:
         with:
           repository: dolphin23-jp/pokemon-showdown
           ref: 8348ded9a21a545e688714f6dac8d75fee615347
+          fetch-depth: 1
           path: server
 
       - name: Set up Node.js
@@ -34,10 +36,14 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: client/package-lock.json
+          cache-dependency-path: |
+            client/package-lock.json
+            server/package-lock.json
 
-      - name: Install client dependencies
-        run: npm ci --prefix client
+      - name: Install dependencies
+        run: |
+          npm ci --prefix client
+          npm ci --prefix server
 
       - name: Extract T3-01 target templates
         run: |
@@ -45,37 +51,136 @@ jobs:
             server \
             "$RUNNER_TEMP/phase-3-t3-01-targets.json"
 
-      - name: Apply translated T3-01 block
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+      - name: Verify translated key set and placeholders
         working-directory: client
-        env:
-          HEAD_BRANCH: ${{ github.head_ref }}
         run: |
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
-          const targetPath = 'play.pokemonshowdown.com/src/battle-text-ja.js';
-          const fragmentPath = 'build-tools/phase3-t3-01-battle-text.fragment.js';
-          const marker = '\n\tconst DIRECT_NAME_FIELDS = {';
-          const sentinel = '\tconst PHASE3_T3_01_BATTLE_TEXT = {';
-          const source = fs.readFileSync(targetPath, 'utf8');
-          if (!source.includes(sentinel)) {
-            if (!source.includes(marker)) throw new Error('Battle text insertion marker not found');
-            const fragment = fs.readFileSync(fragmentPath, 'utf8').trimEnd();
-            fs.writeFileSync(targetPath, source.replace(marker, `\n${fragment}\n${marker}`));
-          }
-          NODE
-          git add play.pokemonshowdown.com/src/battle-text-ja.js
-          if git diff --cached --quiet; then
-            echo "T3-01 block already applied."
-          else
-            git config user.name github-actions[bot]
-            git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-            git commit -m "Add Phase 3 ability and item battle text"
-            git push origin "HEAD:${HEAD_BRANCH}"
-          fi
+          import ts from 'typescript';
 
-      - name: Upload T3-01 target analysis
+          const targetData = JSON.parse(fs.readFileSync(
+            process.env.RUNNER_TEMP + '/phase-3-t3-01-targets.json', 'utf8'
+          ));
+          const filePath = 'play.pokemonshowdown.com/src/battle-text-ja.js';
+          const sourceText = fs.readFileSync(filePath, 'utf8');
+          const sourceFile = ts.createSourceFile(filePath, sourceText, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+
+          function findObject(name) {
+            let found = null;
+            function visit(node) {
+              if (found) return;
+              if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.name.text === name) {
+                if (!node.initializer || !ts.isObjectLiteralExpression(node.initializer)) {
+                  throw new Error(`${name} is not an object literal`);
+                }
+                found = node.initializer;
+                return;
+              }
+              ts.forEachChild(node, visit);
+            }
+            visit(sourceFile);
+            if (!found) throw new Error(`Missing ${name}`);
+            return found;
+          }
+
+          function keyName(name) {
+            if (ts.isIdentifier(name) || ts.isStringLiteral(name) || ts.isNoSubstitutionTemplateLiteral(name)) {
+              return name.text;
+            }
+            throw new Error(`Unsupported key ${name.getText(sourceFile)}`);
+          }
+
+          function readObject(node) {
+            const result = new Map();
+            for (const property of node.properties) {
+              if (!ts.isPropertyAssignment(property)) continue;
+              const key = keyName(property.name);
+              if (ts.isObjectLiteralExpression(property.initializer)) {
+                result.set(key, readObject(property.initializer));
+              } else if (ts.isStringLiteral(property.initializer) ||
+                ts.isNoSubstitutionTemplateLiteral(property.initializer)) {
+                result.set(key, property.initializer.text);
+              }
+            }
+            return result;
+          }
+
+          const baseline = readObject(findObject('JAPANESE_BATTLE_TEXT'));
+          const additions = readObject(findObject('PHASE3_T3_01_BATTLE_TEXT'));
+          const expected = new Map(targetData.targets.map(target => [
+            `${target.namespace}.${target.key}`, target,
+          ]));
+          const actual = new Map();
+          for (const [namespace, fields] of additions) {
+            if (!(fields instanceof Map)) throw new Error(`${namespace} is not an object`);
+            for (const [key, value] of fields) {
+              const marker = `${namespace}.${key}`;
+              if (actual.has(marker)) throw new Error(`Duplicate translated key ${marker}`);
+              actual.set(marker, value);
+              if (baseline.get(namespace) instanceof Map && baseline.get(namespace).has(key)) {
+                throw new Error(`Existing Japanese key would be overwritten: ${marker}`);
+              }
+            }
+          }
+          const missing = [...expected.keys()].filter(key => !actual.has(key));
+          const extra = [...actual.keys()].filter(key => !expected.has(key));
+          if (missing.length || extra.length) {
+            throw new Error(`T3-01 key mismatch; missing=${missing.join(',')} extra=${extra.join(',')}`);
+          }
+          const placeholder = /\[[A-Z][A-Z0-9]*\]/g;
+          for (const [marker, value] of actual) {
+            const expectedPlaceholders = expected.get(marker).placeholders;
+            const actualPlaceholders = value.match(placeholder) || [];
+            if (JSON.stringify(actualPlaceholders) !== JSON.stringify(expectedPlaceholders)) {
+              throw new Error(
+                `${marker} placeholders differ: expected ${JSON.stringify(expectedPlaceholders)}, ` +
+                `got ${JSON.stringify(actualPlaceholders)}`
+              );
+            }
+          }
+          console.log(`Verified ${actual.size} T3-01 additions with exact placeholders and no overwrites.`);
+          NODE
+
+      - name: Regenerate T3-00 inventory against client head
+        run: |
+          CLIENT_SHA="$(git -C client rev-parse HEAD)"
+          node -e '
+            const fs = require("fs");
+            const path = "server/config/pokemon-showdown-client.json";
+            const pin = JSON.parse(fs.readFileSync(path, "utf8"));
+            pin.commit = process.argv[1];
+            fs.writeFileSync(path, JSON.stringify(pin, null, 2) + "\n");
+          ' "$CLIENT_SHA"
+          node server/scripts/generate-phase3-battle-text-inventory.mjs \
+            --server-root server \
+            --client-root client \
+            --output "$RUNNER_TEMP/phase-3-battle-text-inventory.json"
+
+      - name: Require zero T3-01 gaps
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const targets = JSON.parse(fs.readFileSync(
+            process.env.RUNNER_TEMP + '/phase-3-t3-01-targets.json', 'utf8'
+          ));
+          const inventory = JSON.parse(fs.readFileSync(
+            process.env.RUNNER_TEMP + '/phase-3-battle-text-inventory.json', 'utf8'
+          ));
+          const remaining = targets.targets.filter(target =>
+            inventory.byNamespace[target.namespace]?.includes(target.key)
+          );
+          if (remaining.length) {
+            throw new Error(`Remaining T3-01 gaps: ${remaining.map(x => `${x.namespace}.${x.key}`).join(', ')}`);
+          }
+          console.log(`Verified zero remaining gaps across ${targets.totalTargets} T3-01 keys.`);
+          NODE
+
+      - name: Upload T3-01 validation artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: phase-3-t3-01-targets
-          path: ${{ runner.temp }}/phase-3-t3-01-targets.json
+          name: phase-3-t3-01-validation
+          path: |
+            ${{ runner.temp }}/phase-3-t3-01-targets.json
+            ${{ runner.temp }}/phase-3-battle-text-inventory.json
+          if-no-files-found: warn
