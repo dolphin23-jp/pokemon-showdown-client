@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>Japanese Teambuilder smoke</title>
+	<link rel="stylesheet" href="/style/client2.css?" />
+	<link rel="stylesheet" href="/style/teambuilder.css?" />
+	<style>
+		body { margin: 0; background: #eef1f5; font-family: Arial, sans-serif; }
+		#room-team-smoke { position: relative; inset: auto; width: auto; min-height: 100vh; padding: 24px; box-sizing: border-box; }
+		.smoke-shell { max-width: 940px; margin: 0 auto; }
+		.smoke-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+		.smoke-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(300px, .75fr); gap: 18px; }
+		.smoke-panel { background: #fff; border: 1px solid #c8ccd2; border-radius: 8px; padding: 16px; box-shadow: 0 2px 8px rgba(0, 0, 0, .08); }
+		.smoke-panel h2 { margin-top: 0; }
+		.smoke-panel textarea { width: 100%; min-height: 220px; box-sizing: border-box; font: 15px/1.45 monospace; }
+		.smoke-search { margin-top: 16px; }
+		.smoke-search .result { list-style: none; border: 1px solid #ddd; border-radius: 5px; }
+		.smoke-search a { display: flex; gap: 10px; padding: 10px; text-decoration: none; }
+		.smoke-report { margin-top: 18px; padding: 12px; border-radius: 6px; background: #edf7ed; font-weight: bold; }
+		.set-form { margin-top: 12px; }
+		.set-form table { width: 100%; }
+		.set-form input { width: 100%; box-sizing: border-box; }
+		@media (max-width: 760px) { .smoke-grid { grid-template-columns: 1fr; } }
+	</style>
+	<script defer src="/js/battle-dex-data.js?"></script>
+	<script defer src="/js/battle-dex.js?"></script>
+	<script defer src="/data/pokedex.js?"></script>
+	<script defer src="/data/moves.js?"></script>
+	<script defer src="/data/items.js?"></script>
+	<script defer src="/data/abilities.js?"></script>
+	<script defer src="/js/battle-display-names.js?"></script>
+	<script defer src="/src/teambuilder-ja.js?"></script>
+	<script defer src="/src/teambuilder-ja-smoke.js?"></script>
+</head>
+<body>
+	<div id="room-team-smoke" class="ps-room ps-room-light">
+		<div class="smoke-shell">
+			<div class="smoke-header">
+				<h1>Teambuilder</h1>
+				<button id="add-pokemon" class="button big">Add Pokémon</button>
+			</div>
+			<ul class="tabbar">
+				<li><button class="button cur">Form</button></li>
+				<li><button class="button">Import/Export</button></li>
+			</ul>
+			<div class="smoke-grid">
+				<section class="smoke-panel">
+					<h2>Team name:</h2>
+					<div id="set-list"></div>
+					<ul class="smoke-search searchresults">
+						<li class="result"><a href="#" data-entry="move|Thunderbolt">
+							<span class="col movenamecol">Thunderbolt</span>
+							<span class="col">data-entry remains English</span>
+						</a></li>
+					</ul>
+				</section>
+				<section class="smoke-panel" role="region" aria-label="Import/Export">
+					<h2>Import/Export</h2>
+					<p>Copy</p>
+					<textarea id="export-text" class="textbox teamtextbox" readonly>Pikachu @ Light Ball
+Ability: Static
+- Thunderbolt
+- Protect</textarea>
+				</section>
+			</div>
+			<div id="smoke-report" class="smoke-report">Loading...</div>
+		</div>
+	</div>
+</body>
+</html>
