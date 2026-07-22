@@ -1,0 +1,126 @@
+name: Japanese Teambuilder visual smoke
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - play.pokemonshowdown.com/index-new.html
+      - play.pokemonshowdown.com/src/teambuilder-ja.js
+      - play.pokemonshowdown.com/src/teambuilder-ja-smoke.js
+      - play.pokemonshowdown.com/teambuilder-ja-smoke.html
+      - test/teambuilder-ja.js
+      - .github/workflows/teambuilder-ja-smoke.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  visual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.x
+          cache: npm
+
+      - name: Build client
+        run: |
+          npm ci
+          npm run build
+
+      - name: Start static client server
+        run: |
+          cd play.pokemonshowdown.com
+          nohup python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/teambuilder-ja-http.log 2>&1 &
+          echo $! >/tmp/teambuilder-ja-http.pid
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8000/teambuilder-ja-smoke.html >/tmp/teambuilder-ja-smoke-source.html; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/teambuilder-ja-http.log
+          exit 1
+
+      - name: Ensure Japanese fonts
+        shell: bash
+        run: |
+          fc-cache -f
+          if fc-list :lang=ja family | grep -q .; then
+            exit 0
+          fi
+          sudo apt-get update
+          sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends fonts-noto-cjk
+          fc-cache -f
+          fc-list :lang=ja family | grep -q .
+
+      - name: Render Japanese Teambuilder and capture screenshot
+        shell: bash
+        run: |
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$browser"
+
+          "$browser" \
+            --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --hide-scrollbars --no-proxy-server \
+            --user-data-dir=/tmp/teambuilder-ja-dom-profile \
+            --window-size=1024,1366 \
+            --virtual-time-budget=5000 \
+            --dump-dom \
+            http://127.0.0.1:8000/teambuilder-ja-smoke.html \
+            > /tmp/teambuilder-ja-dom.html
+
+          grep -q 'data-verified="true"' /tmp/teambuilder-ja-dom.html
+          grep -q 'ピカチュウ' /tmp/teambuilder-ja-dom.html
+          grep -q '10まんボルト' /tmp/teambuilder-ja-dom.html
+          grep -q 'せいでんき' /tmp/teambuilder-ja-dom.html
+          grep -q 'でんきだま' /tmp/teambuilder-ja-dom.html
+          grep -q 'Import・Export本文は英語のまま' /tmp/teambuilder-ja-dom.html
+          grep -q 'Pikachu @ Light Ball' /tmp/teambuilder-ja-dom.html
+          grep -q 'Ability: Static' /tmp/teambuilder-ja-dom.html
+          grep -q -- '- Thunderbolt' /tmp/teambuilder-ja-dom.html
+
+          "$browser" \
+            --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --hide-scrollbars --no-proxy-server \
+            --user-data-dir=/tmp/teambuilder-ja-png-profile \
+            --window-size=1024,1366 \
+            --virtual-time-budget=5000 \
+            --screenshot=/tmp/teambuilder-ja-ipad.png \
+            http://127.0.0.1:8000/teambuilder-ja-smoke.html
+
+          test -s /tmp/teambuilder-ja-ipad.png
+          python3 - <<'PY'
+          import pathlib
+          import struct
+
+          data = pathlib.Path('/tmp/teambuilder-ja-ipad.png').read_bytes()
+          assert data[:8] == b'\x89PNG\r\n\x1a\n'
+          width, height = struct.unpack('>II', data[16:24])
+          assert (width, height) == (1024, 1366), (width, height)
+          PY
+
+      - name: Upload visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: japanese-teambuilder-evidence
+          if-no-files-found: error
+          retention-days: 90
+          path: |
+            /tmp/teambuilder-ja-dom.html
+            /tmp/teambuilder-ja-ipad.png
+            /tmp/teambuilder-ja-http.log
+            /tmp/teambuilder-ja-smoke-source.html
+
+      - name: Stop static server
+        if: always()
+        run: |
+          if test -s /tmp/teambuilder-ja-http.pid; then
+            kill "$(cat /tmp/teambuilder-ja-http.pid)" 2>/dev/null || true
+          fi
