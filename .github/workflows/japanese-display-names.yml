@@ -34,24 +34,12 @@ jobs:
       - name: Type-check client
         run: npx tsc
       - name: Lint display-name changes
-        id: lint
-        continue-on-error: true
         run: >-
-          npx eslint --max-warnings 0 --format json
+          npx eslint --max-warnings 0
           play.pokemonshowdown.com/src/battle-display-names.ts
           build-tools/generate-japanese-display-names.js
           test/display-names.js
           test/japanese-display-name-generator.js
-          > eslint-report.json
-      - name: Upload ESLint report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: eslint-report
-          path: eslint-report.json
-      - name: Fail on ESLint errors
-        if: steps.lint.outcome == 'failure'
-        run: exit 1
       - name: Test display-name API and generator
         run: node --test test/display-names.js test/japanese-display-name-generator.js
       - name: Verify compiled API and generated data contract
