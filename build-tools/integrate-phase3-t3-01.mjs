@@ -53,9 +53,8 @@ function withoutTrailingComma(text) {
 }
 
 const target = parse(targetPath);
-if (!target.text.includes('const PHASE3_T3_01_BATTLE_TEXT = {')) {
-	console.log('T3-01 translations are already integrated directly.');
-	process.exit(0);
+if (target.file.parseDiagnostics.length) {
+	throw new Error(`Input has syntax errors: ${target.file.parseDiagnostics[0].messageText}`);
 }
 const fragment = parse(fragmentPath);
 const mainDeclaration = findVariableObject(target.file, 'JAPANESE_BATTLE_TEXT');
@@ -105,43 +104,10 @@ if (newNamespaceTexts.length) {
 	edits.push({position: mainObject.end - 1, text: insertion});
 }
 
-let phaseStatement = null;
-let mergeStatement = null;
-for (const statement of target.file.statements) {
-	if (!ts.isExpressionStatement(statement) || !ts.isCallExpression(statement.expression)) continue;
-	const expression = statement.expression.expression;
-	if (!ts.isParenthesizedExpression(expression) || !ts.isArrowFunction(expression.expression)) continue;
-	const body = expression.expression.body;
-	if (!ts.isBlock(body)) continue;
-	for (const inner of body.statements) {
-		if (ts.isVariableStatement(inner)) {
-			for (const declaration of inner.declarationList.declarations) {
-				if (ts.isIdentifier(declaration.name) && declaration.name.text === 'PHASE3_T3_01_BATTLE_TEXT') {
-					phaseStatement = inner;
-				}
-			}
-		}
-		if (phaseStatement && ts.isForOfStatement(inner) && inner.pos > phaseStatement.pos &&
-			inner.getText(target.file).includes('PHASE3_T3_01_BATTLE_TEXT')) {
-			mergeStatement = inner;
-			break;
-		}
-	}
-}
-if (!phaseStatement || !mergeStatement) throw new Error('Temporary T3-01 merge block was not found');
-let removalEnd = mergeStatement.end;
-while (removalEnd < target.text.length && (target.text[removalEnd] === '\n' || target.text[removalEnd] === '\r')) {
-	removalEnd++;
-}
-edits.push({position: phaseStatement.getFullStart(), end: removalEnd, text: ''});
-
 edits.sort((a, b) => b.position - a.position);
 let output = target.text;
 for (const edit of edits) {
-	output = output.slice(0, edit.position) + edit.text + output.slice(edit.end ?? edit.position);
-}
-if (output.includes('PHASE3_T3_01_BATTLE_TEXT')) {
-	throw new Error('Temporary T3-01 merge object remains after integration');
+	output = output.slice(0, edit.position) + edit.text + output.slice(edit.position);
 }
 const parsedOutput = ts.createSourceFile(targetPath, output, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
 if (parsedOutput.parseDiagnostics.length) {
