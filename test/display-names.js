@@ -15,28 +15,106 @@ function namedEntry(id, name) {
 	return Object.freeze({ id, name });
 }
 
-function fakeButton(kind, text, tooltip) {
-	const textNode = { nodeType: 3, nodeValue: text, parentElement: null };
-	const button = {
-		childNodes: [textNode, { nodeType: 1, nodeValue: null }],
-		dataCmd: kind === 'move' ? '/move 1' : '/switch 1',
-		dataTooltip: tooltip,
-		matches(selector) {
-			if (selector === 'button.movebutton') return kind === 'move';
-			if (selector.includes('switchpokemon|') || selector.includes('allypokemon|') || selector.includes('activepokemon|')) {
-				return kind === 'species';
+class FakeText {
+	constructor(value) {
+		this.nodeType = 3;
+		this.nodeValue = value;
+		this.parentElement = null;
+		this.childNodes = [];
+	}
+	get textContent() {
+		return this.nodeValue || '';
+	}
+	set textContent(value) {
+		this.nodeValue = value;
+	}
+}
+
+class FakeElement {
+	constructor(tagName = 'div', selectors = [], attributes = {}) {
+		this.nodeType = 1;
+		this.tagName = tagName.toUpperCase();
+		this.selectors = selectors;
+		this.attributes = { ...attributes };
+		this.childNodes = [];
+		this.parentElement = null;
+		this.value = '';
+		this.name = attributes.name || '';
+	}
+	append(...children) {
+		for (const child of children) {
+			child.parentElement = this;
+			this.childNodes.push(child);
+		}
+		return this;
+	}
+	matches(selector) {
+		const parts = selector.split(',').map(part => part.trim());
+		return parts.some(part => this.selectors.some(token => part === token || part.includes(token)));
+	}
+	closest(selector) {
+		for (let element = this; element; element = element.parentElement) {
+			if (element.matches(selector)) return element;
+		}
+		return null;
+	}
+	querySelectorAll(selector) {
+		const results = [];
+		const visit = node => {
+			for (const child of node.childNodes || []) {
+				if (child.nodeType === 1) {
+					if (child.matches(selector)) results.push(child);
+					visit(child);
+				}
 			}
-			return false;
-		},
-		querySelectorAll() {
-			return [];
-		},
-	};
-	textNode.parentElement = button;
+		};
+		visit(this);
+		return results;
+	}
+	querySelector(selector) {
+		return this.querySelectorAll(selector)[0] || null;
+	}
+	getAttribute(name) {
+		return this.attributes[name] ?? null;
+	}
+	setAttribute(name, value) {
+		this.attributes[name] = value;
+	}
+	get textContent() {
+		return this.childNodes.map(child => child.textContent || '').join('');
+	}
+	set textContent(value) {
+		this.childNodes = [];
+		this.append(new FakeText(value));
+	}
+}
+
+function fakeButton(kind, text, tooltip) {
+	const textNode = new FakeText(text);
+	const selector = kind === 'move' ? 'button.movebutton' : 'button[data-tooltip^="switchpokemon|"]';
+	const button = new FakeElement('button', [selector]).append(textNode);
+	button.dataCmd = kind === 'move' ? '/move 1' : '/switch 1';
+	button.dataTooltip = tooltip;
 	return { button, textNode };
 }
 
-function buildContext({ withBattleControls = false } = {}) {
+function fakeInput(scope, type, value) {
+	const input = new FakeElement('input', [`input.set-field[name="${type}"]`], { name: type });
+	input.name = type;
+	input.value = value;
+	scope.append(input);
+	return input;
+}
+
+function fakeSearchEntry(scope, type, name, nameSelector) {
+	const entry = new FakeElement('a', [`a[data-entry^="${type}|"]`], { 'data-entry': `${type}|${name}` });
+	const nameElement = new FakeElement('span', [nameSelector]).append(new FakeText(name));
+	entry.append(nameElement);
+	scope.append(entry);
+	return { entry, nameElement };
+}
+
+function buildContext({ withBattleControls = false, withTeambuilder = false } = {}) {
 	const entries = {
 		species: {
 			pikachu: namedEntry('pikachu', 'Pikachu'),
@@ -82,26 +160,72 @@ function buildContext({ withBattleControls = false } = {}) {
 		},
 		Object,
 		Set,
+		WeakMap,
 		window,
+		setTimeout(callback) {
+			callback();
+			return 1;
+		},
 	};
 	let controls = null;
+	let teambuilder = null;
 	const observers = [];
-	if (withBattleControls) {
-		controls = {
-			move: fakeButton('move', 'Thunderbolt', 'move|Thunderbolt|0'),
-			species: fakeButton('species', 'Pikachu', 'switchpokemon|0'),
-			nickname: fakeButton('species', 'Sparky', 'switchpokemon|1'),
-		};
-		const buttons = Object.values(controls).map(control => control.button);
-		const root = {
-			matches() {
-				return false;
+	const listeners = {};
+	if (withBattleControls || withTeambuilder) {
+		const root = new FakeElement('div', ['body']);
+		if (withBattleControls) {
+			controls = {
+				move: fakeButton('move', 'Thunderbolt', 'move|Thunderbolt|0'),
+				species: fakeButton('species', 'Pikachu', 'switchpokemon|0'),
+				nickname: fakeButton('species', 'Sparky', 'switchpokemon|1'),
+			};
+			root.append(...Object.values(controls).map(control => control.button));
+		}
+		if (withTeambuilder) {
+			const scope = new FakeElement('div', ['.teameditor']);
+			const speciesInput = fakeInput(scope, 'pokemon', 'Pikachu');
+			const moveInput = fakeInput(scope, 'move', 'Thunderbolt');
+			const abilityInput = fakeInput(scope, 'ability', 'Static');
+			const itemInput = fakeInput(scope, 'item', 'Light Ball');
+
+			const speciesResult = fakeSearchEntry(scope, 'pokemon', 'Pikachu', '.pokemonnamecol');
+			const abilityColumn = new FakeElement('span', ['.abilitycol']).append(new FakeText('Static'));
+			speciesResult.entry.append(abilityColumn);
+			const moveResult = fakeSearchEntry(scope, 'move', 'Thunderbolt', '.movenamecol');
+			const abilityResult = fakeSearchEntry(scope, 'ability', 'Static', '.namecol');
+			const itemResult = fakeSearchEntry(scope, 'item', 'Light Ball', '.namecol');
+
+			const addButton = new FakeElement('button', ['.teameditor button[name="addpokemon"]'])
+				.append(new FakeText('Add Pokémon'));
+			const importButton = new FakeElement('button', ['.teameditor button[name="import"]'])
+				.append(new FakeText('Import/Export'));
+			const detailsLabel = new FakeElement('label', ['.teameditor label.label'])
+				.append(new FakeText('Details'));
+			const searchInput = new FakeElement('input', ['[placeholder]'], { placeholder: 'Search abilities' });
+			const importExport = new FakeElement('textarea', ['textarea.teamtextbox']);
+			importExport.value = 'Pikachu @ Light Ball\nAbility: Static\n- Thunderbolt';
+			scope.append(addButton, importButton, detailsLabel, searchInput, importExport);
+			root.append(scope);
+			teambuilder = {
+				scope,
+				inputs: { speciesInput, moveInput, abilityInput, itemInput },
+				results: { speciesResult, moveResult, abilityResult, itemResult, abilityColumn },
+				addButton,
+				importButton,
+				detailsLabel,
+				searchInput,
+				importExport,
+			};
+		}
+		const document = {
+			body: root,
+			documentElement: root,
+			activeElement: null,
+			addEventListener(type, callback) {
+				(listeners[type] ||= []).push(callback);
 			},
-			querySelectorAll() {
-				return buttons;
-			},
 		};
-		contextValues.document = { body: root, documentElement: root };
+		contextValues.document = document;
 		contextValues.MutationObserver = class MutationObserver {
 			constructor(callback) {
 				this.callback = callback;
@@ -115,7 +239,7 @@ function buildContext({ withBattleControls = false } = {}) {
 	}
 	const context = vm.createContext(contextValues);
 	vm.runInContext(fs.readFileSync(compiledPath, 'utf8'), context);
-	return { api: window.PSDisplayNames, calls, controls, entries, observers, window };
+	return { api: window.PSDisplayNames, calls, controls, entries, listeners, observers, teambuilder, window, context };
 }
 
 test('exposes the four display-only helpers', () => {
@@ -184,4 +308,41 @@ test('localizes battle move and species button text without changing commands or
 	assert.equal(observers[0].options.childList, true);
 	assert.equal(observers[0].options.subtree, true);
 	assert.equal(observers[0].options.characterData, true);
+});
+
+test('localizes Teambuilder display fields, result rows, and fixed labels only', () => {
+	const { teambuilder } = buildContext({ withTeambuilder: true });
+	assert.equal(teambuilder.inputs.speciesInput.value, 'ピカチュウ');
+	assert.equal(teambuilder.inputs.moveInput.value, '10まんボルト');
+	assert.equal(teambuilder.inputs.abilityInput.value, 'せいでんき');
+	assert.equal(teambuilder.inputs.itemInput.value, 'でんきだま');
+	assert.equal(teambuilder.results.speciesResult.nameElement.textContent, 'ピカチュウ');
+	assert.equal(teambuilder.results.moveResult.nameElement.textContent, '10まんボルト');
+	assert.equal(teambuilder.results.abilityResult.nameElement.textContent, 'せいでんき');
+	assert.equal(teambuilder.results.itemResult.nameElement.textContent, 'でんきだま');
+	assert.equal(teambuilder.results.abilityColumn.textContent, 'せいでんき');
+	assert.equal(teambuilder.results.speciesResult.entry.getAttribute('data-entry'), 'pokemon|Pikachu');
+	assert.equal(teambuilder.results.moveResult.entry.getAttribute('data-entry'), 'move|Thunderbolt');
+	assert.equal(teambuilder.addButton.textContent, 'ポケモンを追加');
+	assert.equal(teambuilder.importButton.textContent, 'インポート／エクスポート');
+	assert.equal(teambuilder.detailsLabel.textContent, '詳細');
+	assert.equal(teambuilder.searchInput.getAttribute('placeholder'), '特性を検索');
+	assert.equal(
+		teambuilder.importExport.value,
+		'Pikachu @ Light Ball\nAbility: Static\n- Thunderbolt'
+	);
+});
+
+test('restores canonical English before editing and relocalizes after focus leaves', () => {
+	const { teambuilder, listeners, context } = buildContext({ withTeambuilder: true });
+	const input = teambuilder.inputs.speciesInput;
+	assert.equal(input.value, 'ピカチュウ');
+
+	context.document.activeElement = input;
+	listeners.focus[0]({ target: input });
+	assert.equal(input.value, 'Pikachu');
+
+	context.document.activeElement = null;
+	listeners.focusout[0]({ target: input });
+	assert.equal(input.value, 'ピカチュウ');
 });
