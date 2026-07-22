@@ -1,0 +1,50 @@
+name: Phase 3 T3-01 target analysis
+
+on:
+  pull_request:
+    paths:
+      - build-tools/analyze-phase3-t3-01.mjs
+      - .github/workflows/phase3-t3-01-analysis.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out client branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: client
+
+      - name: Check out T3-00 server baseline
+        uses: actions/checkout@v4
+        with:
+          repository: dolphin23-jp/pokemon-showdown
+          ref: 8348ded9a21a545e688714f6dac8d75fee615347
+          path: server
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install client dependencies
+        run: npm ci --prefix client
+
+      - name: Extract T3-01 target templates
+        run: |
+          node client/build-tools/analyze-phase3-t3-01.mjs \
+            server \
+            "$RUNNER_TEMP/phase-3-t3-01-targets.json"
+
+      - name: Upload T3-01 target analysis
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-3-t3-01-targets
+          path: ${{ runner.temp }}/phase-3-t3-01-targets.json
