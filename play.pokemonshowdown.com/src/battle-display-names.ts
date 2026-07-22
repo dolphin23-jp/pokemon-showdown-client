@@ -148,7 +148,7 @@ type DisplayNameWindow = Window & {
 };
 
 const displayNameWindow = window as DisplayNameWindow;
-const teambuilderCanonicalValues = new WeakMap<HTMLInputElement, string>();
+const TEAMBUILDER_CANONICAL_ATTRIBUTE = 'data-ps-canonical-value';
 
 function displayName(entry: NamedDexEntry, tableKey: DisplayNameTableKey): string {
 	const translatedName = displayNameWindow.BattleJapaneseDisplayNames?.[tableKey]?.[entry.id];
@@ -250,10 +250,10 @@ function teambuilderInputTranslator(input: HTMLInputElement): ((name: string) =>
 export function restoreTeambuilderInput(input: HTMLInputElement): boolean {
 	if (!input.matches(TEAMBUILDER_INPUT_SELECTOR) || !isTeambuilderElement(input)) return false;
 	const translate = teambuilderInputTranslator(input);
-	const canonical = teambuilderCanonicalValues.get(input);
-	if (!translate || canonical === undefined) return false;
+	const canonical = input.getAttribute(TEAMBUILDER_CANONICAL_ATTRIBUTE);
+	if (!translate || canonical === null) return false;
 	if (input.value !== translate(canonical)) {
-		teambuilderCanonicalValues.set(input, input.value);
+		input.setAttribute(TEAMBUILDER_CANONICAL_ATTRIBUTE, input.value);
 		return false;
 	}
 	input.value = canonical;
@@ -262,7 +262,7 @@ export function restoreTeambuilderInput(input: HTMLInputElement): boolean {
 
 /**
  * Shows Japanese in an unfocused Teambuilder field while retaining the
- * canonical English value in memory for focus/edit/commit handling.
+ * canonical English value in a temporary DOM attribute for editing.
  */
 export function localizeTeambuilderInput(input: HTMLInputElement): boolean {
 	if (!input.matches(TEAMBUILDER_INPUT_SELECTOR) || !isTeambuilderElement(input)) return false;
@@ -270,14 +270,14 @@ export function localizeTeambuilderInput(input: HTMLInputElement): boolean {
 	const translate = teambuilderInputTranslator(input);
 	if (!translate) return false;
 
-	let canonical = teambuilderCanonicalValues.get(input);
-	if (canonical === undefined) {
+	let canonical = input.getAttribute(TEAMBUILDER_CANONICAL_ATTRIBUTE);
+	if (canonical === null) {
 		canonical = input.value;
 	} else {
 		const previousDisplay = translate(canonical);
 		if (input.value !== canonical && input.value !== previousDisplay) canonical = input.value;
 	}
-	teambuilderCanonicalValues.set(input, canonical);
+	input.setAttribute(TEAMBUILDER_CANONICAL_ATTRIBUTE, canonical);
 
 	const translated = translate(canonical);
 	if (!translated || translated === input.value) return false;
@@ -435,7 +435,7 @@ function installDisplayLocalization() {
 	document.addEventListener('focusout', event => {
 		const target = event.target as HTMLInputElement | null;
 		if (!target?.matches?.(TEAMBUILDER_INPUT_SELECTOR)) return;
-		teambuilderCanonicalValues.set(target, target.value);
+		target.setAttribute(TEAMBUILDER_CANONICAL_ATTRIBUTE, target.value);
 		setTimeout(() => localizeTeambuilderInput(target), 0);
 	}, true);
 
