@@ -1,3 +1,4 @@
+/* eslint-disable @stylistic/max-len */
 /**
  * Teambuilder team panel
  *
@@ -13,6 +14,7 @@ import { TeamEditor, type TeamEditorState } from "./battle-team-editor";
 import { Net, PSLoginServer } from "./client-connection";
 import { Teams } from "./battle-teams";
 import { CopyableURLBox } from "./panel-chat";
+import { SharedChromeJA, TeambuilderTeamChromeJA } from "./client-ui-ja-strings";
 
 class TeamRoom extends PSRoom {
 	/** Doesn't _literally_ always exist, but does in basically all code
@@ -276,15 +278,15 @@ class TeamPanel extends PSRoomPanel<TeamRoom> {
 		const formatName = BattleLog.formatName(team.format);
 		return (info && (info.resources.length || info.url)) ? (
 			<details class="details" open>
-				<summary><strong>Teambuilding resources for {formatName}</strong></summary>
+				<summary><strong>{TeambuilderTeamChromeJA.teambuildingResourcesFor} {formatName}</strong></summary>
 				<div style="margin-left:5px"><ul>
 					{info.resources.map(resource => (
 						<li><p><a href={resource.url} target="_blank">{resource.resource_name}</a></p></li>
 					))}
 				</ul>
 				<p>
-					Find {info.resources.length ? 'more ' : ''}
-					helpful resources for {formatName} on <a href={info.url} target="_blank">the Smogon Dex</a>.
+					{TeambuilderTeamChromeJA.find} {info.resources.length ? TeambuilderTeamChromeJA.more : ''}
+					{TeambuilderTeamChromeJA.helpfulResourcesFor} {formatName} {TeambuilderTeamChromeJA.on} <a href={info.url} target="_blank">{TeambuilderTeamChromeJA.theSmogonDex}</a>.
 				</p></div>
 			</details>
 		) : null;
@@ -303,10 +305,10 @@ class TeamPanel extends PSRoomPanel<TeamRoom> {
 			}
 			return <PSPanelWrapper room={room}>
 				<a class="button" href="teambuilder" data-target="replace">
-					<i class="fa fa-chevron-left" aria-hidden></i> List
+					<i class="fa fa-chevron-left" aria-hidden></i> {TeambuilderTeamChromeJA.list}
 				</a>
 				<p class="error">
-					{room.teamDeleted ? 'Team was deleted' : 'Team doesn\'t exist'}
+					{room.teamDeleted ? TeambuilderTeamChromeJA.teamWasDeleted : TeambuilderTeamChromeJA.teamDoesNotExist}
 				</p>
 			</PSPanelWrapper>;
 		}
@@ -314,24 +316,24 @@ class TeamPanel extends PSRoomPanel<TeamRoom> {
 		const unsaved = team.uploaded && team.uploadedPackedTeam ? team.uploadedPackedTeam !== team.packedTeam : false;
 		return <PSPanelWrapper room={room}><div class="pad">
 			<a class="button" href="teambuilder" data-target="replace">
-				<i class="fa fa-chevron-left" aria-hidden></i> Teams
+				<i class="fa fa-chevron-left" aria-hidden></i> {TeambuilderTeamChromeJA.teams}
 			</a> {}
 			{team.uploaded ? (
 				<>
 					<button class={`button${unsaved ? ' button-first' : ''}`} data-href={`teamstorage-${team.key}`}>
-						<i class="fa fa-globe"></i> Account {team.uploaded.private ? '' : "(public)"}
+						<i class="fa fa-globe"></i> {TeambuilderTeamChromeJA.account} {team.uploaded.private ? '' : TeambuilderTeamChromeJA.publicMarker}
 					</button>
 					{unsaved && <button class="button button-last" onClick={this.uploadTeam}>
-						<strong>Upload changes</strong>
+						<strong>{TeambuilderTeamChromeJA.uploadChanges}</strong>
 					</button>}
 				</>
 			) : team.teamid ? (
 				<button class="button" data-href={`teamstorage-${team.key}`}>
-					<i class="fa fa-plug"></i> Disconnected (wrong account?)
+					<i class="fa fa-plug"></i> {TeambuilderTeamChromeJA.disconnectedWrongAccount}
 				</button>
 			) : (
 				<button class="button" data-href={`teamstorage-${team.key}`}>
-					<i class="fa fa-laptop"></i> Local
+					<i class="fa fa-laptop"></i> {TeambuilderTeamChromeJA.local}
 				</button>
 			)}
 			<div style={room.width < 550 ? "margin-top:8px" : "float:right"}><button
@@ -339,10 +341,10 @@ class TeamPanel extends PSRoomPanel<TeamRoom> {
 				class="select formatselect" data-href="/formatdropdown" onChange={this.handleChangeFormat}
 			>
 				<i class="fa fa-folder-o"></i> {BattleLog.formatName(team.format)} {}
-				{team.format.length <= 4 && <em>(uncategorized)</em>}
+				{team.format.length <= 4 && <em>{SharedChromeJA.uncategorized}</em>}
 			</button></div>
 			<label class="label teamname">
-				Team name:{}
+				{TeambuilderTeamChromeJA.teamNameLabel}{}
 				<input
 					class="textbox" type="text" value={team.name}
 					onInput={this.handleRename} onChange={this.handleRename} onKeyUp={this.handleRename}
@@ -354,25 +356,25 @@ class TeamPanel extends PSRoomPanel<TeamRoom> {
 				editorRef={(editor: TeamEditorState) => { room.editor = editor; }}
 			>
 				{!!(team.packedTeam && team.format.length > 4) && <p>
-					<button data-cmd="/validate" class="button"><i class="fa fa-check"></i> Validate</button>
+					<button data-cmd="/validate" class="button"><i class="fa fa-check"></i> {TeambuilderTeamChromeJA.validate}</button>
 				</p>}
 				{!!(team.packedTeam || team.uploaded) && <p class="infobox" style="padding: 5px 8px">
 					{team.uploadedPackedTeam && !team.uploaded ? <>
-						Uploading...
+						{TeambuilderTeamChromeJA.uploading}
 					</> : team.uploaded ? <>
-						<small>Share URL:</small> {}
+						<small>{TeambuilderTeamChromeJA.shareUrlLabel}</small> {}
 						<CopyableURLBox
 							url={`https://psim.us/t/${team.uploaded.teamid}${team.uploaded.private ? '-' + team.uploaded.private : ''}`}
 						/> {}
 						{unsaved && <div style="padding-top:5px">
 							<button class="button" onClick={this.uploadTeam}>
-								<i class="fa fa-upload"></i> <strong>Upload changes</strong>
+								<i class="fa fa-upload"></i> <strong>{TeambuilderTeamChromeJA.uploadChanges}</strong>
 							</button> {}
 							<button class="button" onClick={this.restore}>
-								Revert to uploaded version
+								{TeambuilderTeamChromeJA.revertToUploadedVersion}
 							</button> {}
 							<button class="button" onClick={this.compare}>
-								Compare
+								{TeambuilderTeamChromeJA.compare}
 							</button>
 						</div>}
 					</> : !team.teamid ? <>
@@ -380,17 +382,14 @@ class TeamPanel extends PSRoomPanel<TeamRoom> {
 							<input
 								name="teamprivacy" checked={!PS.prefs.uploadprivacy}
 								type="checkbox" onChange={this.changePrivacyPref}
-							/> Public
+							/> {TeambuilderTeamChromeJA.publicStorage}
 						</label>
 						<button class="button exportbutton" onClick={this.uploadTeam}>
-							<i class="fa fa-upload"></i> Upload for
-							{PS.prefs.uploadprivacy ? ' shareable URL' : ' shareable/searchable URL'}
+							<i class="fa fa-upload"></i> {TeambuilderTeamChromeJA.uploadFor}
+							{PS.prefs.uploadprivacy ? TeambuilderTeamChromeJA.shareableUrl : TeambuilderTeamChromeJA.shareableSearchableUrl}
 						</button>
 					</> : <>
-						This is a disconnected team. This could be because you uploaded it
-						on a different account, or because you deleted or un-uploaded it on
-						a different computer. For safety, you can't edit this team. You can,
-						however, delete it, or make a copy (which will be editable).
+						{TeambuilderTeamChromeJA.disconnectedTeamExplanation}
 					</>}
 				</p>}
 			</TeamEditor>
@@ -450,22 +449,22 @@ class ViewTeamPanel extends PSRoomPanel {
 		if (!team) {
 			return <PSPanelWrapper room={room}>
 				{team === null ? <p class="error">
-					Team doesn't exist
+					{TeambuilderTeamChromeJA.teamDoesNotExist}
 				</p> : <p>
-					Loading...
+					{SharedChromeJA.loading}
 				</p>}
 			</PSPanelWrapper>;
 		}
 
 		return <PSPanelWrapper room={room}><div class="pad">
-			<h1>{team.name || "Untitled team"}</h1>
+			<h1>{team.name || TeambuilderTeamChromeJA.untitledTeam}</h1>
 			<CopyableURLBox
 				url={`https://psim.us/t/${team.teamid!}${teamData.private ? '-' + teamData.private : ''}`}
 			/> {}
-			<p>Uploaded by: <strong>{teamData.ownerid}</strong></p>
-			<p>Format: <strong>{teamData.format}</strong></p>
-			<p>Views: <strong>{teamData.views}</strong></p>
-			{team.key && <p><a class="button" href={`team-${team.key}`}>Edit</a></p>}
+			<p>{TeambuilderTeamChromeJA.uploadedByLabel} <strong>{teamData.ownerid}</strong></p>
+			<p>{SharedChromeJA.formatLabel} <strong>{teamData.format}</strong></p>
+			<p>{TeambuilderTeamChromeJA.viewsLabel} <strong>{teamData.views}</strong></p>
+			{team.key && <p><a class="button" href={`team-${team.key}`}>{TeambuilderTeamChromeJA.edit}</a></p>}
 			<TeamEditor team={team} readOnly></TeamEditor>
 		</div></PSPanelWrapper>;
 	}
@@ -526,23 +525,23 @@ class TeamStoragePanel extends PSRoomPanel {
 		if (storage === 'disconnected') {
 			return <PSPanelWrapper room={room} width={280}><div class="pad">
 				<div><button class="option cur" data-cmd="/close">
-					<i class="fa fa-plug"></i> <strong>Disconnected</strong><br />
-					Not found in the Teams database. Maybe you uploaded it on a different account?
+					<i class="fa fa-plug"></i> <strong>{TeambuilderTeamChromeJA.disconnected}</strong><br />
+					{TeambuilderTeamChromeJA.disconnectedNotFoundDescription}
 				</button></div>
 			</div></PSPanelWrapper>;
 		}
 		return <PSPanelWrapper room={room} width={280}><div class="pad">
 			<div><button class={`option${storage === 'local' ? ' cur' : ''}`} onClick={this.chooseOption} value="local">
-				<i class="fa fa-laptop"></i> <strong>Local</strong><br />
-				Stored in cookies on your computer. Warning: Your browser might delete these. Make sure to use backups.
+				<i class="fa fa-laptop"></i> <strong>{TeambuilderTeamChromeJA.local}</strong><br />
+				{TeambuilderTeamChromeJA.localStorageDescription}
 			</button></div>
 			<div><button class={`option${storage === 'account' ? ' cur' : ''}`} onClick={this.chooseOption} value="account">
-				<i class="fa fa-cloud"></i> <strong>Account</strong><br />
-				Uploaded to the Teams database. You can share with the URL.
+				<i class="fa fa-cloud"></i> <strong>{TeambuilderTeamChromeJA.account}</strong><br />
+				{TeambuilderTeamChromeJA.accountStorageDescription}
 			</button></div>
 			<div><button class={`option${storage === 'public' ? ' cur' : ''}`} onClick={this.chooseOption} value="public">
-				<i class="fa fa-globe"></i> <strong>Account (public)</strong><br />
-				Uploaded to the Teams database publicly. Share with the URL or people can find it by searching.
+				<i class="fa fa-globe"></i> <strong>{TeambuilderTeamChromeJA.accountPublic}</strong><br />
+				{TeambuilderTeamChromeJA.publicStorageDescription}
 			</button></div>
 		</div></PSPanelWrapper>;
 	}
