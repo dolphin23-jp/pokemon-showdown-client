@@ -31,7 +31,7 @@ jobs:
     - name: Apply and validate timer localization
       run: |
         node build-tools/apply-t3-05-timer-followup.js
-        rm build-tools/apply-t3-05-timer-followup.js
+        rm -f build-tools/apply-t3-05-timer-followup.js t3-05-timer-trigger.txt
         npx eslint --fix \
           play.pokemonshowdown.com/src/client-ui-ja-strings.ts \
           play.pokemonshowdown.com/src/panel-battle.tsx \
