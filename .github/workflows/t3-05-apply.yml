@@ -38,8 +38,7 @@ jobs:
           battle_indexes = [i for i, line in enumerate(lines) if "('<strong>Battle</strong>'" in line]
           if len(battle_indexes) != 1:
               raise SystemExit(f'unexpected Battle replacement lines: {battle_indexes}')
-          i = battle_indexes[0]
-          lines[i] = lines[i].replace(', 3),', ', 2),')
+          lines[battle_indexes[0]] = lines[battle_indexes[0]].replace(', 3),', ', 2),')
 
           team_indexes = [i for i, line in enumerate(lines) if "Team so far</h3>" in line]
           if len(team_indexes) != 2:
@@ -51,6 +50,73 @@ jobs:
           Path('/tmp/t3-05-apply.sh').write_text('\n'.join(lines) + '\n')
           PY
           bash /tmp/t3-05-apply.sh
+      - name: Format applied source
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('play.pokemonshowdown.com/src/panel-battle.tsx')
+          source = path.read_text()
+
+          def replace(old, new, count=1):
+              global source
+              actual = source.count(old)
+              if actual != count:
+                  raise SystemExit(f'format replacement count {actual} != {count}: {old[:100]!r}')
+              source = source.replace(old, new)
+
+          replace(
+              '<label class="label">{SharedChromeJA.formatLabel}</label><FormatDropdown onChange={this.changeFormat} placeholder={BattleChromeJA.allFormatsPlaceholder} />',
+              '<label class="label">{SharedChromeJA.formatLabel}</label><FormatDropdown\n\t\t\t\t\tonChange={this.changeFormat} placeholder={BattleChromeJA.allFormatsPlaceholder}\n\t\t\t\t/>'
+          )
+          replace(
+              '<input type="text" name="prefixsearch" class="textbox" placeholder={BattleChromeJA.usernamePrefixPlaceholder} autocomplete="off" />',
+              '<input\n\t\t\t\t\t\ttype="text" name="prefixsearch" class="textbox"\n\t\t\t\t\t\tplaceholder={BattleChromeJA.usernamePrefixPlaceholder} autocomplete="off"\n\t\t\t\t\t/>'
+          )
+          replace(
+              '<button data-cmd="/cancel" class="button"><i class="fa fa-chevron-left" aria-hidden></i> {SharedChromeJA.back}</button>, \' \',',
+              '<button data-cmd="/cancel" class="button">\n\t\t\t\t<i class="fa fa-chevron-left" aria-hidden></i> {SharedChromeJA.back}\n\t\t\t</button>, \' \','
+          )
+          replace(
+              '<button class="button" data-cmd="/ffto end"><i class="fa fa-fast-forward" aria-hidden></i><br />{BattleChromeJA.skipAnimation}</button>',
+              '<button class="button" data-cmd="/ffto end">\n\t\t\t\t\t<i class="fa fa-fast-forward" aria-hidden></i><br />{BattleChromeJA.skipAnimation}\n\t\t\t\t</button>'
+          )
+          replace(
+              '<button class="button move-button cur"><strong>{BattleChromeJA.battleTab}</strong></button> {}',
+              '<button class="button move-button cur">\n\t\t\t\t\t\t\t<strong>{BattleChromeJA.battleTab}</strong>\n\t\t\t\t\t\t</button> {}'
+          )
+          replace(
+              '<button class="button switch-button disabled"><strong>{BattleChromeJA.switchTab}</strong></button>',
+              '<button class="button switch-button disabled">\n\t\t\t\t\t\t\t<strong>{BattleChromeJA.switchTab}</strong>\n\t\t\t\t\t\t</button>'
+          )
+          replace(
+              '<button class={this.overlayControlClass(\'move\')} data-cmd="/movemenu"><strong>{BattleChromeJA.battleTab}</strong></button> {}',
+              '<button class={this.overlayControlClass(\'move\')} data-cmd="/movemenu">\n\t\t\t\t\t\t<strong>{BattleChromeJA.battleTab}</strong>\n\t\t\t\t\t</button> {}'
+          )
+          replace(
+              '<button class={this.overlayControlClass(\'switch\')} data-cmd="/switchmenu"><strong>{BattleChromeJA.switchTab}</strong></button>',
+              '<button class={this.overlayControlClass(\'switch\')} data-cmd="/switchmenu">\n\t\t\t\t\t\t<strong>{BattleChromeJA.switchTab}</strong>\n\t\t\t\t\t</button>'
+          )
+          replace(
+              '[<button data-cmd="/cancel" class="button"><i class="fa fa-chevron-left" aria-hidden></i> {SharedChromeJA.back}</button>,',
+              '[<button data-cmd="/cancel" class="button">\n\t\t\t\t<i class="fa fa-chevron-left" aria-hidden></i> {SharedChromeJA.back}\n\t\t\t</button>,'
+          )
+          replace(
+              "BattleChromeJA.numberedSlot.replace(\n\t\t\t\t'${…}', String(choices.alreadySwitchingIn.length + 1)\n\t\t\t)",
+              "BattleChromeJA.numberedSlot.replace(\n\t\t\t\t/\\$\\{…\\}/, String(choices.alreadySwitchingIn.length + 1)\n\t\t\t)"
+          )
+          replace(
+              '<button class={this.overlayControlClass(\'switch\')} data-cmd="/switchmenu"><strong>{BattleChromeJA.teamTab}</strong></button>',
+              '<button class={this.overlayControlClass(\'switch\')} data-cmd="/switchmenu">\n\t\t\t\t\t\t\t<strong>{BattleChromeJA.teamTab}</strong>\n\t\t\t\t\t\t</button>'
+          )
+          replace(
+              '<button class="button" data-cmd="/switchsides"><i class="fa fa-random" aria-hidden></i> {BattleChromeJA.switchViewpoint}</button> {}',
+              '<button class="button" data-cmd="/switchsides">\n\t\t\t\t\t\t<i class="fa fa-random" aria-hidden></i> {BattleChromeJA.switchViewpoint}\n\t\t\t\t\t</button> {}'
+          )
+
+          path.write_text(source)
+          PY
       - name: Install dependencies
         run: npm ci
       - name: Build and test
@@ -64,7 +130,7 @@ jobs:
             cp /tmp/t3-05-test.log t3-05-test-error.log
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add -f t3-05-test-error.log
+            git add t3-05-test-error.log
             git commit -m "Record T3-05 test failure"
             git push origin HEAD:${{ github.head_ref }}
             cat /tmp/t3-05-test.log
@@ -78,7 +144,6 @@ jobs:
           rm -f t3-05-apply-error.log t3-05-test-error.log
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add play.pokemonshowdown.com/src/client-ui-ja-strings.ts play.pokemonshowdown.com/src/panel-battle.tsx test/client-ui-ja-strings.js
-          git add -u .github/workflows/t3-05-apply.yml t3-05-apply-error.log t3-05-test-error.log
+          git add play.pokemonshowdown.com/src/client-ui-ja-strings.ts play.pokemonshowdown.com/src/panel-battle.tsx test/client-ui-ja-strings.js .github/workflows/t3-05-apply.yml t3-05-apply-error.log t3-05-test-error.log
           git commit -m "Apply Japanese battle chrome"
           git push origin HEAD:${{ github.head_ref }}
