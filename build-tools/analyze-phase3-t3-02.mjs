@@ -109,7 +109,16 @@ function resolveTemplate(table, namespace, key, seen = []) {
 	const raw = table.get(namespace)?.get(key);
 	if (raw === undefined) throw new Error(`Missing template: ${marker}`);
 	if (!raw.startsWith('#')) return {resolvedEnglish: raw, aliasChain: seen};
-	const [aliasNamespace, aliasKey = key] = raw.slice(1).split('.');
+	const alias = raw.slice(1);
+	let aliasNamespace = namespace;
+	let aliasKey = key;
+	if (alias.startsWith('.')) {
+		aliasKey = alias.slice(1) || key;
+	} else {
+		const parts = alias.split('.');
+		aliasNamespace = parts[0] || namespace;
+		aliasKey = parts[1] || key;
+	}
 	return resolveTemplate(table, aliasNamespace, aliasKey, [...seen, marker]);
 }
 
