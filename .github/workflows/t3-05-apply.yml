@@ -33,29 +33,33 @@ jobs:
           start = source.index(marker)
           end = source.index("          PY\n", start) + len("          PY\n")
           block = source[start:end]
-          script = '\n'.join(line[10:] if line.startswith('          ') else line for line in block.splitlines()) + '\n'
-          battle_old = "('<strong>Battle</strong>', '<strong>{BattleChromeJA.battleTab}</strong>', 3),"
-          battle_new = "('<strong>Battle</strong>', '<strong>{BattleChromeJA.battleTab}</strong>', 2),"
-          if script.count(battle_old) != 1:
-              raise SystemExit('unexpected Battle replacement script')
-          script = script.replace(battle_old, battle_new)
-          duplicate = "    ('<h3 class=\"switchselect\">Team so far</h3>', '<h3 class=\"switchselect\">{BattleChromeJA.teamSoFar}</h3>', 1),\n"
-          if script.count(duplicate) != 2:
-              raise SystemExit('unexpected Team so far replacement script')
-          script = script.replace(duplicate + duplicate, duplicate.replace(', 1),', ', 2),'))
-          Path('/tmp/t3-05-apply.sh').write_text(script)
+          lines = [line[10:] if line.startswith('          ') else line for line in block.splitlines()]
+
+          battle_indexes = [i for i, line in enumerate(lines) if "('<strong>Battle</strong>'" in line]
+          if len(battle_indexes) != 1:
+              raise SystemExit(f'unexpected Battle replacement lines: {battle_indexes}')
+          i = battle_indexes[0]
+          lines[i] = lines[i].replace(', 3),', ', 2),')
+
+          team_indexes = [i for i, line in enumerate(lines) if "Team so far</h3>" in line]
+          if len(team_indexes) != 2:
+              raise SystemExit(f'unexpected Team so far replacement lines: {team_indexes}')
+          first, second = team_indexes
+          lines[first] = lines[first].replace(', 1),', ', 2),')
+          del lines[second]
+
+          Path('/tmp/t3-05-apply.sh').write_text('\n'.join(lines) + '\n')
           PY
           set +e
           bash /tmp/t3-05-apply.sh > /tmp/t3-05-apply.log 2>&1
           status=$?
           set -e
           if [ "$status" -ne 0 ]; then
-            error_file="t3-05-apply-error-${GITHUB_RUN_ID}.log"
-            cp /tmp/t3-05-apply.log "$error_file"
+            cp /tmp/t3-05-apply.log t3-05-apply-error.log
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add "$error_file"
-            git commit -m "Record T3-05 application failure ${GITHUB_RUN_ID}"
+            git add t3-05-apply-error.log
+            git commit -m "Record T3-05 application failure"
             git push origin HEAD:${{ github.head_ref }}
             cat /tmp/t3-05-apply.log
             exit "$status"
@@ -68,9 +72,9 @@ jobs:
         shell: bash
         run: |
           rm .github/workflows/t3-05-apply.yml
-          rm -f t3-05-apply-error*.log
+          rm -f t3-05-apply-error.log
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add play.pokemonshowdown.com/src/client-ui-ja-strings.ts play.pokemonshowdown.com/src/panel-battle.tsx test/client-ui-ja-strings.js .github/workflows/t3-05-apply.yml t3-05-apply-error*.log
+          git add play.pokemonshowdown.com/src/client-ui-ja-strings.ts play.pokemonshowdown.com/src/panel-battle.tsx test/client-ui-ja-strings.js .github/workflows/t3-05-apply.yml t3-05-apply-error.log
           git commit -m "Apply Japanese battle chrome"
           git push origin HEAD:${{ github.head_ref }}
