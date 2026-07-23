@@ -37,6 +37,11 @@ jobs:
       - name: Install client dependencies
         run: npm ci --prefix client
 
+      - name: Capture Champions-template definitions
+        run: |
+          grep -n -B 8 -A 4 'champions' server/data/text/moves.ts \
+            > "$RUNNER_TEMP/phase-3-t3-02-champions-context.txt" || true
+
       - name: Extract T3-02 move templates
         run: |
           set +e
@@ -57,4 +62,5 @@ jobs:
             ${{ runner.temp }}/phase-3-t3-02-targets.json
             ${{ runner.temp }}/phase-3-t3-02-analysis.log
             ${{ runner.temp }}/phase-3-t3-02-analysis.status
+            ${{ runner.temp }}/phase-3-t3-02-champions-context.txt
           if-no-files-found: warn
