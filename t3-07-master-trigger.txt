@@ -1,1 +1,0 @@
-Trigger the already-installed final T3-07 residual application workflow.
