@@ -9,15 +9,56 @@ on:
   pull_request:
     branches: [ master ]
 
+permissions:
+  contents: write
+
 jobs:
-  build:
-
+  apply-t3-07:
+    if: github.event_name == 'push' && github.event.head_commit.message == 'Temporarily apply T3-07 Teambuilder labels'
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        ref: agent/phase3-t3-07-teambuilder-labels
+        fetch-depth: 0
+    - name: Use Node.js 22
+      uses: actions/setup-node@v6
+      with:
+        node-version: 22.x
+        cache: 'npm'
+    - run: npm ci
+    - name: Apply and validate T3-07
+      shell: bash
+      run: |
+        set +e
+        node build-tools/apply-t3-07-teambuilder-labels.js > t3-07-apply.log 2>&1
+        status=$?
+        if [ "$status" -eq 0 ]; then
+          npm test >> t3-07-apply.log 2>&1
+          status=$?
+        fi
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        if [ "$status" -eq 0 ]; then
+          git show 5d12ab2a25b1d1f6b00aabb75457434d30dc1494:.github/workflows/test.yml > .github/workflows/test.yml
+          rm -f build-tools/apply-t3-07-teambuilder-labels.js t3-07-trigger.txt t3-07-apply-summary.json t3-07-apply.log
+          git add -A
+          git commit -m "Localize Teambuilder labels"
+          git push origin HEAD:agent/phase3-t3-07-teambuilder-labels
+          exit 0
+        fi
+        tail -n 250 t3-07-apply.log > t3-07-failure.log
+        git add t3-07-failure.log
+        git commit -m "Record T3-07 application failure" || true
+        git push origin HEAD:agent/phase3-t3-07-teambuilder-labels
+        exit "$status"
 
+  build:
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         node-version: [22.x]
-
     steps:
     - uses: actions/checkout@v6
     - name: Use Node.js ${{ matrix.node-version }}
