@@ -44,7 +44,6 @@ jobs:
       shell: bash
       run: |
         set +e
-        rm -f t3-07-residual-failure.log
         node build-tools/apply-t3-07-residual-labels.js > t3-07-residual.log 2>&1
         status=$?
         if [ "$status" -eq 0 ]; then
@@ -73,15 +72,16 @@ jobs:
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
         if [ "$status" -eq 0 ]; then
-          rm -f t3-07-residual.log t3-07-residual-failure.log t3-07-failure.log
+          rm -f t3-07-residual.log t3-07-residual-failure*.log t3-07-failure.log
           git add -A
           git commit -m "Complete Teambuilder label coverage"
           git push origin HEAD:agent/phase3-t3-07-teambuilder-labels
           exit 0
         fi
-        tail -n 300 t3-07-residual.log > t3-07-residual-failure.log
-        git add t3-07-residual-failure.log
-        git commit -m "Record residual T3-07 failure" || true
+        failure_file="t3-07-residual-failure-${GITHUB_RUN_ID}.log"
+        tail -n 300 t3-07-residual.log > "$failure_file"
+        git add -f "$failure_file"
+        git commit -m "Record residual T3-07 failure ${GITHUB_RUN_ID}"
         git push origin HEAD:agent/phase3-t3-07-teambuilder-labels
         exit "$status"
 
