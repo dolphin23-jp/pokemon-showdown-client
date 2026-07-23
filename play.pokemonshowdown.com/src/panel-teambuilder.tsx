@@ -13,6 +13,7 @@ import { Teams } from "./battle-teams";
 import { BattleLog } from "./battle-log";
 import { TeamEditorState } from "./battle-team-editor";
 import { PSTextarea } from "./panel-chat";
+import { SharedChromeJA, TeambuilderListChromeJA } from "./client-ui-ja-strings";
 
 const ADD_FORMAT_FOLDER_VALUE = '+';
 const ADD_FOLDER_VALUE = '++';
@@ -485,12 +486,12 @@ class TeambuilderPanel extends PSRoomPanel<TeambuilderRoom> {
 			];
 		} else if (value === '') {
 			children = [
-				<em>(all)</em>,
+				<em>{SharedChromeJA.all}</em>,
 			];
 		} else if (value === '++') {
 			children = [
 				<i class="fa fa-plus" aria-hidden></i>,
-				<em>(add folder)</em>,
+				<em>{TeambuilderListChromeJA.addFolder}</em>,
 			];
 		} else {
 			children = [
@@ -576,7 +577,7 @@ class TeambuilderPanel extends PSRoomPanel<TeambuilderRoom> {
 		ev.stopImmediatePropagation();
 		ev.preventDefault();
 		PS.confirm(`Delete \`\`${oldFolder}\`\`? (doesn't delete teams)`, {
-			okButton: "Delete", otherButtons: <button class="button" data-cmd="/closeand /inopener /convertfoldertoprefix">Convert to prefix</button>,
+			okButton: "Delete", otherButtons: <button class="button" data-cmd="/closeand /inopener /convertfoldertoprefix">{TeambuilderListChromeJA.convertToPrefix}</button>,
 			parentElem: elem,
 		}).then(result => {
 			if (result) room.send(`/deletefolder`, elem);
@@ -639,7 +640,7 @@ class TeambuilderPanel extends PSRoomPanel<TeambuilderRoom> {
 				name="format" value="" data-selecttype="teambuilder"
 				class="selectFolder" data-href="/formatdropdown" onChange={this.addFormatFolder}
 			>
-				<i class="fa fa-plus" aria-hidden></i><em>(add format folder)</em>
+				<i class="fa fa-plus" aria-hidden></i><em>{TeambuilderListChromeJA.addFormatFolder}</em>
 			</button></div>,
 		];
 
@@ -655,9 +656,9 @@ class TeambuilderPanel extends PSRoomPanel<TeambuilderRoom> {
 					renderedFolders.push(...renderedFormatFolders);
 					renderedFormatFolders = [];
 					renderedFolders.push(<div class="foldersep"></div>);
-					renderedFolders.push(<div class="folder"><h3>Folders</h3></div>);
+					renderedFolders.push(<div class="folder"><h3>{TeambuilderListChromeJA.folders}</h3></div>);
 				} else {
-					renderedFolders.push(<div class="folder"><h3>Gen {gen}</h3></div>);
+					renderedFolders.push(<div class="folder"><h3>{TeambuilderListChromeJA.gen} {gen}</h3></div>);
 				}
 			}
 			renderedFolders.push(this.renderFolder(format));
@@ -684,7 +685,7 @@ class TeambuilderPanel extends PSRoomPanel<TeambuilderRoom> {
 		for (const folder of this.getFolderList()) {
 			if (folder.endsWith('/')) {
 				renderedFolders.push(
-					<option value={folder}>{folder.slice(0, -1) || 'Teams not in any folders'}</option>
+					<option value={folder}>{folder.slice(0, -1) || SharedChromeJA.teamsNotInAnyFolders}</option>
 				);
 			} else {
 				const gen = parseInt(folder.charAt(3), 10);
@@ -692,7 +693,7 @@ class TeambuilderPanel extends PSRoomPanel<TeambuilderRoom> {
 				if (!group.length) gens.push(gen);
 				group.push(
 					<option value={folder}>
-						{BattleLog.formatName(folder)}{folder.length <= 4 ? ' (uncategorized)' : ''}
+						{BattleLog.formatName(folder)}{folder.length <= 4 ? SharedChromeJA.uncategorized : ''}
 					</option>
 				);
 			}
@@ -700,15 +701,15 @@ class TeambuilderPanel extends PSRoomPanel<TeambuilderRoom> {
 
 		return <>
 			<select class="select teambuilder-folder-select" value={room.curFolder} onChange={this.changeMobileFolder}>
-				<option value="">All teams</option>
+				<option value="">{TeambuilderListChromeJA.allTeams}</option>
 				{gens.map(gen => (
 					<optgroup label={`Gen ${gen}`}>
 						{formatGroups[gen]}
 					</optgroup>
 				))}
-				<option value={ADD_FORMAT_FOLDER_VALUE}>(add format folder)</option>
+				<option value={ADD_FORMAT_FOLDER_VALUE}>{TeambuilderListChromeJA.addFormatFolder}</option>
 				{renderedFolders.length ? <optgroup label="Folders">{renderedFolders}</optgroup> : null}
-				<option value={ADD_FOLDER_VALUE}>(add folder)</option>
+				<option value={ADD_FOLDER_VALUE}>{TeambuilderListChromeJA.addFolder}</option>
 			</select>
 			<button
 				name="format" value="" data-selecttype="teambuilder"
@@ -777,7 +778,7 @@ class TeambuilderPanel extends PSRoomPanel<TeambuilderRoom> {
 			return <div class="teampane">
 				<p>
 					<button data-cmd="/backup" class="button">
-						<i class="fa fa-caret-left" aria-hidden></i> Back
+						<i class="fa fa-caret-left" aria-hidden></i> {SharedChromeJA.back}
 					</button> {}
 					{room.exportMode !== true && <button class="button" disabled>
 						<i class="fa fa-save" aria-hidden></i> Save (not allowed for partial exports)
@@ -844,13 +845,13 @@ class TeambuilderPanel extends PSRoomPanel<TeambuilderRoom> {
 			)}
 			<p>
 				<button data-cmd="/newteam" class="button big">
-					<i class="fa fa-plus-circle" aria-hidden></i> New {teamTerm}
+					<i class="fa fa-plus-circle" aria-hidden></i> {TeambuilderListChromeJA.new} {teamTerm}
 				</button> {}
 				<button data-cmd="/newteam box" class="button">
-					<i class="fa fa-archive" aria-hidden></i> New box
+					<i class="fa fa-archive" aria-hidden></i> {TeambuilderListChromeJA.newBox}
 				</button>
 				<input
-					type="search" class="textbox" placeholder="Search teams"
+					type="search" class="textbox" placeholder={TeambuilderListChromeJA.searchTeamsPlaceholder}
 					style="margin-left:5px;" onKeyUp={this.updateSearch}
 				></input>
 			</p>
@@ -919,16 +920,16 @@ class TeambuilderPanel extends PSRoomPanel<TeambuilderRoom> {
 			</ul>
 			<p>
 				<button data-cmd="/newteam bottom" class="button">
-					<i class="fa fa-plus-circle" aria-hidden></i> New {teamTerm}
+					<i class="fa fa-plus-circle" aria-hidden></i> {TeambuilderListChromeJA.new} {teamTerm}
 				</button> {}
 				<button data-cmd="/newteam box bottom" class="button">
-					<i class="fa fa-archive" aria-hidden></i> New box
+					<i class="fa fa-archive" aria-hidden></i> {TeambuilderListChromeJA.newBox}
 				</button>
 			</p>
 			<p>
 				<button data-cmd="/backup" class="button">
-					<i class="fa fa-file-code-o" aria-hidden></i> Backup
-					{room.searchTerms.length ? ' search results' : room.curFolder ? ' folder' : ''}
+					<i class="fa fa-file-code-o" aria-hidden></i> {TeambuilderListChromeJA.backup}
+					{room.searchTerms.length ? TeambuilderListChromeJA.searchResults : room.curFolder ? TeambuilderListChromeJA.folder : ''}
 				</button>
 			</p>
 		</div>;

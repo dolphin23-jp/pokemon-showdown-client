@@ -1,3 +1,4 @@
+/* eslint-disable @stylistic/max-len */
 /**
  * Team Selector Panel
  *
@@ -9,6 +10,7 @@ import { PS, type Team } from "./client-main";
 import { PSIcon, PSPanelWrapper, PSRoomPanel } from "./panels";
 import { Dex, toID, type ID } from "./battle-dex";
 import { Teams } from "./battle-teams";
+import { SharedChromeJA, TeamDropdownChromeJA } from "./client-ui-ja-strings";
 
 export class PSTeambuilder {
 	static exportPackedTeam(team: Team) {
@@ -151,7 +153,7 @@ export function TeamBox(props: {
 				pokemon => PSIcon({ pokemon })
 			)
 		) : (
-			<em>(empty {team.isBox ? 'box' : 'team'})</em>
+			<em>{TeamDropdownChromeJA.empty} {team.isBox ? TeamDropdownChromeJA.box : TeamDropdownChromeJA.team})</em>
 		);
 		let format = team.format as string;
 		if (format.startsWith(Dex.modid)) format = format.slice(4);
@@ -162,7 +164,7 @@ export function TeamBox(props: {
 		];
 	} else {
 		contents = [
-			<em>Select a team</em>,
+			<em>{TeamDropdownChromeJA.selectATeam}</em>,
 		];
 	}
 	const className = `team${team?.isBox ? ' pc-box' : ''}`;
@@ -230,10 +232,10 @@ class TeamDropdownPanel extends PSRoomPanel {
 		if (!room.parentElem) {
 			return <PSPanelWrapper room={room}>
 				<div class="pad">
-					<p>This team selector is no longer available (the challenge was cancelled or something).</p>
+					<p>{TeamDropdownChromeJA.teamSelectorUnavailable}</p>
 					<p class="buttonbar">
 						<button type="button" data-cmd="/close" class="button">
-							Close
+							{SharedChromeJA.close}
 						</button>
 					</p>
 				</div>
@@ -288,12 +290,12 @@ class TeamDropdownPanel extends PSRoomPanel {
 			<button
 				class={'button' + (baseGen === this.format ? ' disabled' : '')} onClick={this.setFormat} name="format" value={baseGen}
 			>
-				<i class="fa fa-folder-o" aria-hidden></i> [{baseGen}] <em>(uncategorized)</em>
+				<i class="fa fa-folder-o" aria-hidden></i> [{baseGen}] <em>{SharedChromeJA.uncategorized}</em>
 			</button> {}
 			<button
 				class={'button' + (baseGen === this.gen ? ' disabled' : '')} onClick={this.setFormat} name="gen" value={baseGen}
 			>
-				<i class="fa fa-folder-o" aria-hidden></i> [{baseGen}] <em>(all)</em>
+				<i class="fa fa-folder-o" aria-hidden></i> [{baseGen}] <em>{SharedChromeJA.all}</em>
 			</button> {}
 			{hasOtherGens && !this.gen && (
 				<button class="button" onClick={this.setFormat} name="gen" value={baseGen}>Other gens</button>
@@ -301,7 +303,7 @@ class TeamDropdownPanel extends PSRoomPanel {
 		</p>);
 
 		if (hasOtherGens && this.gen) {
-			teamList.push(<h2>Other gens</h2>);
+			teamList.push(<h2>{TeamDropdownChromeJA.otherGens}</h2>);
 			teamList.push(<p>{genList.sort().map(gen => [
 				<button class={'button' + (gen === this.gen ? ' disabled' : '')} onClick={this.setFormat} name="gen" value={gen}>
 					<i class="fa fa-folder-o" aria-hidden></i> [{gen}] <em>(all)</em>
@@ -327,7 +329,7 @@ class TeamDropdownPanel extends PSRoomPanel {
 				</h2>);
 			} else {
 				teamList.push(<h2>
-					<i class="fa fa-folder-open-o" aria-hidden></i> Teams not in any folders
+					<i class="fa fa-folder-open-o" aria-hidden></i> {SharedChromeJA.teamsNotInAnyFolders}
 				</h2>);
 			}
 			teamList.push(<ul class="teamdropdown" onClick={this.click}>
@@ -405,10 +407,10 @@ class FormatDropdownPanel extends PSRoomPanel {
 		if (!room.parentElem) {
 			return <PSPanelWrapper room={room}>
 				<div class="pad">
-					<p>This format selector is no longer available.</p>
+					<p>{TeamDropdownChromeJA.formatSelectorUnavailable}</p>
 					<p class="buttonbar">
 						<button type="button" data-cmd="/close" class="button">
-							Close
+							{SharedChromeJA.close}
 						</button>
 					</p>
 				</div>
@@ -427,10 +429,10 @@ class FormatDropdownPanel extends PSRoomPanel {
 		const curGen = (gen: string) => this.gen === gen ? ' cur' : '';
 		const searchBar = <div style="margin-bottom: 0.5em">
 			<input
-				type="search" name="search" placeholder="Search formats" class="textbox autofocus" autocomplete="off"
+				type="search" name="search" placeholder={TeamDropdownChromeJA.searchFormatsPlaceholder} class="textbox autofocus" autocomplete="off"
 				onInput={this.updateSearch} onChange={this.updateSearch}
 			/> {}
-			<button onClick={this.toggleGen} value="gen9" class={`button button-first${curGen('gen9')}`}>Gen 9</button>
+			<button onClick={this.toggleGen} value="gen9" class={`button button-first${curGen('gen9')}`}>{TeamDropdownChromeJA.gen9}</button>
 			<button onClick={this.toggleGen} value="gen8" class={`button button-middle${curGen('gen8')}`}>8</button>
 			<button onClick={this.toggleGen} value="gen7" class={`button button-middle${curGen('gen7')}`}>7</button>
 			<button onClick={this.toggleGen} value="gen6" class={`button button-middle${curGen('gen6')}`}>6</button>
@@ -443,7 +445,7 @@ class FormatDropdownPanel extends PSRoomPanel {
 		if (!formatsLoaded) {
 			return <PSPanelWrapper room={room}><div class="pad">
 				{searchBar}
-				<p>Loading...</p>
+				<p>{SharedChromeJA.loading}</p>
 			</div></PSPanelWrapper>;
 		}
 

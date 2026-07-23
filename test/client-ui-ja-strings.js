@@ -20,10 +20,22 @@ const TARGETS = [
 		file: 'play.pokemonshowdown.com/src/panel-popups.tsx',
 		classes: ['BattleForfeitPanel', 'ReplacePlayerPanel'],
 	},
-	{ file: 'play.pokemonshowdown.com/src/battle-team-editor.tsx' },
-	{ file: 'play.pokemonshowdown.com/src/panel-teambuilder.tsx' },
-	{ file: 'play.pokemonshowdown.com/src/panel-teambuilder-team.tsx' },
-	{ file: 'play.pokemonshowdown.com/src/panel-teamdropdown.tsx' },
+	{
+		file: 'play.pokemonshowdown.com/src/battle-team-editor.tsx',
+		appliedGroups: ["SharedChromeSources","TeambuilderChromeSources"],
+	},
+	{
+		file: 'play.pokemonshowdown.com/src/panel-teambuilder.tsx',
+		appliedGroups: ["SharedChromeSources","TeambuilderListChromeSources"],
+	},
+	{
+		file: 'play.pokemonshowdown.com/src/panel-teambuilder-team.tsx',
+		appliedGroups: ["SharedChromeSources","TeambuilderTeamChromeSources"],
+	},
+	{
+		file: 'play.pokemonshowdown.com/src/panel-teamdropdown.tsx',
+		appliedGroups: ["SharedChromeSources","TeamDropdownChromeSources"],
+	},
 ];
 
 function normalizeText(value) {

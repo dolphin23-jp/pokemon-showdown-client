@@ -1,3 +1,4 @@
+/* eslint-disable @stylistic/max-len */
 /**
  * Teambuilder team editor, extracted from the rest of the Preact
  * client so that it can be used in isolation.
@@ -17,6 +18,7 @@ import { BattleStatGuesser, BattleStatOptimizer, BattleTooltips } from "./battle
 import { PSModel } from "./client-core";
 import { Net } from "./client-connection";
 import { PSIcon, PSView } from "./panels";
+import { SharedChromeJA, TeambuilderChromeJA } from "./client-ui-ja-strings";
 
 type InnerFocusType = 'pokemon' | 'ability' | 'item' | 'move' | 'stats' | 'details' | 'import';
 type TeamEditorMode = 'form' | 'import';
@@ -932,7 +934,7 @@ export class TeamEditorState extends PSModel {
 			<small>
 				<PSIcon pokemon={set} /> {set.name || set.species}
 				{set.ability && ` [${set.ability}]`}{set.item && ` @ ${set.item}`}
-				{} - {set.moves.join(' / ') || '(No moves)'}
+				{} - {set.moves.join(' / ') || TeambuilderChromeJA.noMoves}
 			</small>
 		</div>;
 		const renderTeam = (team: Team, sets: Dex.PokemonSet[]) => <div class="set"><small>
@@ -941,7 +943,7 @@ export class TeamEditorState extends PSModel {
 		</small></div>;
 
 		return <div class="infobox">
-			Clipboard
+			{TeambuilderChromeJA.clipboard}
 			{Object.values(TeamEditorState.clipboard.teams || {})?.map(clipboardTeam => (
 				clipboardTeam.entire ? (
 					renderTeam(clipboardTeam.team, Object.values(clipboardTeam.sets))
@@ -951,7 +953,7 @@ export class TeamEditorState extends PSModel {
 			))}
 			{TeamEditorState.clipboard.otherSets?.map(set => renderSet(set))}
 			<button class="button" onClick={cancelClipboard}>
-				<i class="fa fa-times" aria-hidden></i> Cancel
+				<i class="fa fa-times" aria-hidden></i> {SharedChromeJA.cancel}
 			</button>
 		</div>;
 	}
@@ -983,8 +985,8 @@ export class TeamEditor extends preact.Component<{
 		const renderTypeDefensive = (counter: typeof counters[number]) => (
 			<tr>
 				<th>{counter.type}</th>
-				<td>{counter.resists} <small class="gray">resist</small></td>
-				<td>{counter.weaknesses} <small class="gray">weak</small></td>
+				<td>{counter.resists} <small class="gray">{TeambuilderChromeJA.resist}</small></td>
+				<td>{counter.weaknesses} <small class="gray">{TeambuilderChromeJA.weak}</small></td>
 			</tr>
 		);
 		for (const counter of counters) {
@@ -998,10 +1000,10 @@ export class TeamEditor extends preact.Component<{
 		}
 		return <details class="details">
 			<summary>
-				<strong>Defensive coverage</strong>
+				<strong>{TeambuilderChromeJA.defensiveCoverage}</strong>
 				<table class="details-preview table">
 					{bad}
-					<tr><td colSpan={3}><span class="details-preview ilink"><small>See all</small></span></td></tr>
+					<tr><td colSpan={3}><span class="details-preview ilink"><small>{TeambuilderChromeJA.seeAll}</small></span></td></tr>
 				</table>
 			</summary>
 			<table class="table">{bad}{medium}{good}</table>
@@ -1693,10 +1695,10 @@ class TeamTextbox extends preact.Component<{
 
 		return <button class="textbox setdetails" name="details" value={i} onClick={this.clickDetails}>
 			<span class="detailcell">
-				<label>Level</label>{set.level || editor.defaultLevel}
+				<label>{TeambuilderChromeJA.level}</label>{set.level || editor.defaultLevel}
 			</span>
 			<span class="detailcell">
-				<label>Shiny</label>{set.shiny ? 'Yes' : '\u2014'}
+				<label>{TeambuilderChromeJA.shiny}</label>{set.shiny ? TeambuilderChromeJA.yes : '\u2014'}
 			</span>
 			{editor.gen === 9 && !editor.isChampions ? (
 				<span class="detailcell">
@@ -2103,7 +2105,7 @@ class TeamEditorForm extends preact.Component<{
 			<div class={isSearchMode && (set?.moves.length || 0) > 5 ? 'team-focus-top' : ''}>
 				<ul class="tabbar">
 					<li class="home-li"><button class="button" onClick={this.closeInnerFocus}>
-						<i class="fa fa-chevron-left" aria-hidden></i> Back
+						<i class="fa fa-chevron-left" aria-hidden></i> {SharedChromeJA.back}
 					</button></li>
 					{editor.sets.map((curSet, i) => <li><button
 						class={`button picontab${cur(i)}`} onClick={this.setFocus}
@@ -2819,7 +2821,7 @@ class TeamEditorForm extends preact.Component<{
 					<tr>
 						<td rowSpan={2} class="set-pokemon"><div class="border-collapse">
 							<span class="sprite-inner">
-								<strong class="label">Pokemon</strong> {}
+								<strong class="label">{TeambuilderChromeJA.pokemon}</strong> {}
 								{this.renderInput(i, 'pokemon', '')}
 							</span>
 						</div></td>
@@ -2844,10 +2846,10 @@ class TeamEditorForm extends preact.Component<{
 			<div style="text-align:right">
 				<button class="option" onClick={this.copySet} value={i}>
 					<i class="fa fa-copy" aria-hidden></i> {
-						isCur ? "Deselect" :
-						TeamEditorState.clipboard ? "Add to clipboard" :
-						editor.readonly ? "Copy" :
-						"Copy/Move"
+						isCur ? SharedChromeJA.deselect :
+						TeamEditorState.clipboard ? TeambuilderChromeJA.addToClipboard :
+						editor.readonly ? TeambuilderChromeJA.copy :
+						TeambuilderChromeJA.copyMove
 					}
 				</button> {}
 				{!(TeamEditorState.clipboard || editor.readonly) && <button
@@ -2867,21 +2869,21 @@ class TeamEditorForm extends preact.Component<{
 					<td rowSpan={2} class="set-pokemon"><div class="border-collapse">
 						<span class="sprite-inner">
 							<label class="label">
-								<span>Pokemon</span> {}
+								<span>{TeambuilderChromeJA.pokemon}</span> {}
 								{this.renderInput(i, 'pokemon', set.species)}
 							</label>
 						</span>
 					</div></td>
 					<td colSpan={2} class="set-details"><div class="border-collapse">
 						<label class="label">
-							Details {}
+							{TeambuilderChromeJA.details} {}
 							<button
 								class={`textbox${this.cur('details', i)}`} onClick={this.clickPanelButton}
 								onKeyDown={this.keyDownPanelButton} name="details"
 								value={`set-${i}-details`}
 							>
 								<span class="detailcell">
-									<label>Level</label> {}
+									<label>{TeambuilderChromeJA.level}</label> {}
 									{set.level || editor.defaultLevel}
 								</span>
 								{!!(set.shiny || editor.gen >= 2) && <span class="detailcell">
@@ -2910,7 +2912,7 @@ class TeamEditorForm extends preact.Component<{
 					</div></td>
 					<td rowSpan={2} class={`set-moves${overfull}`}><div class="border-collapse">
 						<label class={`label ${this.cur('move', i)}`}>
-							Moves <button
+							{TeambuilderChromeJA.moves} <button
 								class={`button ${this.cur('move', i)}`} onClick={this.setFocus} value={`set-${i}-move`}
 							>+</button>
 						</label> {}
@@ -2920,7 +2922,7 @@ class TeamEditorForm extends preact.Component<{
 					</div></td>
 					<td rowSpan={2} class="set-stats">
 						<label class="label">
-							Stats {}
+							{TeambuilderChromeJA.stats} {}
 							<button
 								class={`textbox${this.cur('stats', i)}`} onClick={this.clickPanelButton}
 								onKeyDown={this.keyDownPanelButton} name="stats"
@@ -2951,7 +2953,7 @@ class TeamEditorForm extends preact.Component<{
 			</table>
 			<div class={`set-nickname${tintClass}`}>
 				<label class="label">
-					<span>Nickname</span>
+					<span>{TeambuilderChromeJA.nickname}</span>
 					{this.renderNicknameInput(i)}
 				</label>
 			</div>
@@ -3187,7 +3189,7 @@ class StatForm extends preact.Component<{
 		if (editor.isChampions) return null;
 		if (!hpIVdata) {
 			return <select name="ivspread" class="select" onChange={this.changeIVSpread}>
-				<option value="" selected>IV spreads</option>
+				<option value="" selected>{TeambuilderChromeJA.ivSpreads}</option>
 				{autoSpreadValue && <option value="auto">Auto ({autoSpreadValue})</option>}
 				<optgroup label="min Atk">
 					<option value="31/0/31/31/31/31">31/0/31/31/31/31</option>
@@ -3207,7 +3209,7 @@ class StatForm extends preact.Component<{
 		const hpIVs = hpIVdata.map(ivs => ivs.split('').map(iv => parseInt(iv)));
 
 		return <select name="ivspread" class="select" onChange={this.changeIVSpread}>
-			<option value="" selected>Hidden Power {hpType} IVs</option>
+			<option value="" selected>{TeambuilderChromeJA.hiddenPower} {hpType} {TeambuilderChromeJA.ivs}</option>
 			{autoSpreadValue && <option value="auto">Auto ({autoSpreadValue})</option>}
 			<optgroup label="min Atk">
 				{hpIVs.map(ivs => {
@@ -3332,7 +3334,7 @@ class StatForm extends preact.Component<{
 
 		if (editor.gen < 3) {
 			return <p>
-				(<a target="_blank" href={this.smogdexLink(set.species)}>Smogon&nbsp;analysis</a>)
+				(<a target="_blank" href={this.smogdexLink(set.species)}>{TeambuilderChromeJA.smogonAnalysis}</a>)
 			</p>;
 		}
 
@@ -3343,9 +3345,9 @@ class StatForm extends preact.Component<{
 		const guessedPlus = guess.plusStat || null;
 		const guessedMinus = guess.minusStat || null;
 		return <p class="suggested">
-			<small>Guessed spread: </small>
+			<small>{TeambuilderChromeJA.guessedSpreadLabel} </small>
 			{role === '?' ? (
-				"(Please choose 4 moves to get a guessed spread)"
+				TeambuilderChromeJA.chooseFourMovesForGuessedSpread
 			) : (
 				<button name="setStatFormGuesses" class="button" onClick={this.handleGuess}>{role}: {}
 					{
@@ -3357,7 +3359,7 @@ class StatForm extends preact.Component<{
 					)}
 				</button>
 			)}
-			<small> (<a target="_blank" href={this.smogdexLink(set.species)}>Smogon&nbsp;analysis</a>)</small>
+			<small> (<a target="_blank" href={this.smogdexLink(set.species)}>{TeambuilderChromeJA.smogonAnalysis}</a>)</small>
 			{/* <small>
 				({role} | bulk: phys {Math.round(guess.moveCount.physicalBulk / 1000)}
 				{} + spec {Math.round(guess.moveCount.specialBulk / 1000)}
@@ -3370,10 +3372,10 @@ class StatForm extends preact.Component<{
 		if (!optimized) return null;
 
 		return <p>
-			<small><em>Protip:</em> Use a different nature to {
+			<small><em>{TeambuilderChromeJA.protipLabel}</em> {TeambuilderChromeJA.useADifferentNatureTo} {
 				optimized.savedEVs ?
-					`save ${optimized.savedEVs} EVs` :
-					'get higher stats'
+					TeambuilderChromeJA.saveValueEvs.replace('$' + '{…}', String(optimized.savedEVs)) :
+					TeambuilderChromeJA.getHigherStats
 			}: </small>
 			<button name="setStatFormOptimization" class="button" onClick={this.handleOptimize}>
 				{
@@ -3652,15 +3654,15 @@ class StatForm extends preact.Component<{
 		const defaultIVs = editor.defaultIVs(set);
 
 		return <div style="font-size:10pt" role="dialog" aria-label="Stats">
-			<div class="resultheader"><h3>EVs, IVs, and Nature</h3></div>
+			<div class="resultheader"><h3>{TeambuilderChromeJA.evsIvsAndNature}</h3></div>
 			<div class="pad">
 				{this.renderSpreadGuesser()}
 				<table>
 					<tr>
 						<th>{/* Stat name */}</th>
-						<th>Base</th>
+						<th>{TeambuilderChromeJA.base}</th>
 						<th class="setstatbar">{/* Stat bar */}</th>
-						<th>{editor.isLetsGo ? 'AVs' : editor.isChampions ? 'Points' : 'EVs'}</th>
+						<th>{editor.isLetsGo ? TeambuilderChromeJA.avs : editor.isChampions ? TeambuilderChromeJA.points : TeambuilderChromeJA.evs}</th>
 						<th>{/* EV slider */}</th>
 						{!editor.isChampions && <th>{useIVs ? 'IVs' : 'DVs'}</th>}
 						<th>{/* Final stat */}</th>
@@ -3689,7 +3691,7 @@ class StatForm extends preact.Component<{
 					</tr>)}
 					<tr>
 						<td colSpan={2}></td>
-						<td class="setstatbar" style="text-align:right">{remaining !== null ? 'Remaining:' : <>&nbsp;</>}</td>
+						<td class="setstatbar" style="text-align:right">{remaining !== null ? TeambuilderChromeJA.remainingLabel : <>&nbsp;</>}</td>
 						<td style="text-align:center">{remaining && remaining < 0 ? <b class="message-error">{remaining}</b> : remaining}</td>
 						<td colSpan={3} style="text-align:right">{this.renderIVMenu()}</td>
 					</tr>
@@ -3834,18 +3836,18 @@ class DetailsForm extends preact.Component<{
 		const { editor, set } = this.props;
 		const species = editor.dex.species.get(set.species);
 		return <div style="font-size:10pt" role="dialog" aria-label="Details">
-			<div class="resultheader"><h3>Details</h3></div>
+			<div class="resultheader"><h3>{TeambuilderChromeJA.details}</h3></div>
 			<div class="pad">
-				<p><label class="label">Nickname: <input
+				<p><label class="label">{TeambuilderChromeJA.nicknameLabel} <input
 					name="nickname" class="textbox default-placeholder" placeholder={species.baseSpecies}
 					onInput={this.changeNickname} onChange={this.changeNickname}
 				/></label></p>
-				<p><label class="label">Level: <input
+				<p><label class="label">{TeambuilderChromeJA.levelLabel} <input
 					name="level" value={set.level ?? ''} placeholder={`${editor.defaultLevel}`}
 					type="number" inputMode="numeric" min="1" max="100" step="1"
 					class="textbox inputform numform default-placeholder" style="width: 50px"
 					onInput={this.changeLevel} onChange={this.changeLevel} disabled={editor.isChampions}
-				/></label><small>(You probably want to change the team's levels by changing the format, not here)</small></p>
+				/></label><small>{TeambuilderChromeJA.preferFormatLevelHint}</small></p>
 				{editor.gen > 1 && (<>
 					<p><div class="label">Shiny: <div class="labeled">
 						<label class="checkbox inline"><input
