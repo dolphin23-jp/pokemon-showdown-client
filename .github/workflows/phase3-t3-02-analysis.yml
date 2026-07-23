@@ -1,0 +1,50 @@
+name: Phase 3 T3-02 move-text analysis
+
+on:
+  pull_request:
+    paths:
+      - build-tools/analyze-phase3-t3-02.mjs
+      - .github/workflows/phase3-t3-02-analysis.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out client branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: client
+
+      - name: Check out T3-01 server baseline
+        uses: actions/checkout@v4
+        with:
+          repository: dolphin23-jp/pokemon-showdown
+          ref: master
+          path: server
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install client dependencies
+        run: npm ci --prefix client
+
+      - name: Extract T3-02 move templates
+        run: |
+          node client/build-tools/analyze-phase3-t3-02.mjs \
+            server \
+            "$RUNNER_TEMP/phase-3-t3-02-targets.json"
+
+      - name: Upload T3-02 analysis
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-3-t3-02-targets
+          path: ${{ runner.temp }}/phase-3-t3-02-targets.json
