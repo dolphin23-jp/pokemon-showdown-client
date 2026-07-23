@@ -41,6 +41,7 @@ jobs:
         path.write_text(source)
         PY
     - name: Apply residual labels and validate
+      id: apply
       shell: bash
       run: |
         set +e
@@ -72,18 +73,32 @@ jobs:
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
         if [ "$status" -eq 0 ]; then
-          rm -f t3-07-residual.log t3-07-residual-failure*.log t3-07-failure.log
+          rm -f t3-07-residual-failure*.log t3-07-failure.log
           git add -A
           git commit -m "Complete Teambuilder label coverage"
           git push origin HEAD:agent/phase3-t3-07-teambuilder-labels
-          exit 0
+        else
+          failure_file="t3-07-residual-failure-${GITHUB_RUN_ID}.log"
+          tail -n 300 t3-07-residual.log > "$failure_file"
+          git add -f "$failure_file"
+          git commit -m "Record residual T3-07 failure ${GITHUB_RUN_ID}" || true
+          git push origin HEAD:agent/phase3-t3-07-teambuilder-labels || true
         fi
-        failure_file="t3-07-residual-failure-${GITHUB_RUN_ID}.log"
-        tail -n 300 t3-07-residual.log > "$failure_file"
-        git add -f "$failure_file"
-        git commit -m "Record residual T3-07 failure ${GITHUB_RUN_ID}"
-        git push origin HEAD:agent/phase3-t3-07-teambuilder-labels
-        exit "$status"
+        echo "status=$status" >> "$GITHUB_OUTPUT"
+        exit 0
+    - name: Upload T3-07 diagnostics
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: t3-07-diagnostics-${{ github.run_id }}
+        path: |
+          t3-07-residual.log
+          t3-07-residual-failure-*.log
+        if-no-files-found: warn
+        retention-days: 1
+    - name: Fail if validation failed
+      if: steps.apply.outputs.status != '0'
+      run: exit 1
 
   build:
     runs-on: ubuntu-latest
