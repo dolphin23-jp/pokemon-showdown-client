@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   apply-t3-07-residual:
-    if: github.event_name == 'push' && github.event.head_commit.message == 'Finalize residual T3-07 labels'
+    if: github.event_name == 'pull_request' && github.head_ref == 'agent/phase3-t3-07-teambuilder-labels'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
