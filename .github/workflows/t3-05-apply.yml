@@ -50,31 +50,34 @@ jobs:
 
           Path('/tmp/t3-05-apply.sh').write_text('\n'.join(lines) + '\n')
           PY
-          set +e
-          bash /tmp/t3-05-apply.sh > /tmp/t3-05-apply.log 2>&1
-          status=$?
-          set -e
-          if [ "$status" -ne 0 ]; then
-            cp /tmp/t3-05-apply.log t3-05-apply-error.log
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add t3-05-apply-error.log
-            git commit -m "Record T3-05 application failure"
-            git push origin HEAD:${{ github.head_ref }}
-            cat /tmp/t3-05-apply.log
-            exit "$status"
-          fi
+          bash /tmp/t3-05-apply.sh
       - name: Install dependencies
         run: npm ci
       - name: Build and test
-        run: npm test
+        shell: bash
+        run: |
+          set +e
+          npm test > /tmp/t3-05-test.log 2>&1
+          status=$?
+          set -e
+          if [ "$status" -ne 0 ]; then
+            cp /tmp/t3-05-test.log t3-05-test-error.log
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add t3-05-test-error.log
+            git commit -m "Record T3-05 test failure"
+            git push origin HEAD:${{ github.head_ref }}
+            cat /tmp/t3-05-test.log
+            exit "$status"
+          fi
+          cat /tmp/t3-05-test.log
       - name: Commit verified implementation
         shell: bash
         run: |
           rm .github/workflows/t3-05-apply.yml
-          rm -f t3-05-apply-error.log
+          rm -f t3-05-apply-error.log t3-05-test-error.log
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add play.pokemonshowdown.com/src/client-ui-ja-strings.ts play.pokemonshowdown.com/src/panel-battle.tsx test/client-ui-ja-strings.js .github/workflows/t3-05-apply.yml t3-05-apply-error.log
+          git add play.pokemonshowdown.com/src/client-ui-ja-strings.ts play.pokemonshowdown.com/src/panel-battle.tsx test/client-ui-ja-strings.js .github/workflows/t3-05-apply.yml t3-05-apply-error.log t3-05-test-error.log
           git commit -m "Apply Japanese battle chrome"
           git push origin HEAD:${{ github.head_ref }}
