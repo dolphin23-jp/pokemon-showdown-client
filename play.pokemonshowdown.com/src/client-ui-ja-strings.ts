@@ -25,7 +25,7 @@ function indexChromeStrings(groups: readonly ChromeSourceTable[]): Readonly<Reco
 	const strings: Record<string, string> = {};
 	for (const group of groups) {
 		for (const [english, japanese] of Object.values(group)) {
-			if (Object.prototype.hasOwnProperty.call(strings, english)) {
+			if (strings[english] !== undefined) {
 				throw new Error(`Duplicate UI chrome source string: ${english}`);
 			}
 			strings[english] = japanese;
@@ -181,7 +181,7 @@ const TeambuilderChromeSources = {
 	chooseFourMovesForGuessedSpread: ['(Please choose 4 moves to get a guessed spread)', '（推定配分を表示するには技を4つ選んでください）'],
 	protipLabel: ['Protip:', 'ヒント：'],
 	useADifferentNatureTo: ['Use a different nature to', '別の性格にすると'],
-	saveValueEvs: ['save ${…} EVs', '努力値を${…}節約できます'],
+	saveValueEvs: ['save \${…} EVs', '努力値を\${…}節約できます'],
 	getHigherStats: ['get higher stats', 'より高い能力値になります'],
 	evsIvsAndNature: ['EVs, IVs, and Nature', '努力値・個体値・性格'],
 	base: ['Base', '種族値'],
@@ -290,7 +290,7 @@ const TeamDropdownChromeSources = {
 	searchFormatsPlaceholder: ['Search formats', 'フォーマットを検索'],
 	gen9: ['Gen 9', '第9世代'],
 	found: ['found', '件見つかりました'],
-	matchingValue: ['matching "${…}"', '「${…}」に一致する'],
+	matchingValue: ['matching "\${…}"', '「\${…}」に一致する'],
 	noFormats: ['No formats', 'フォーマットがありません'],
 } as const;
 
