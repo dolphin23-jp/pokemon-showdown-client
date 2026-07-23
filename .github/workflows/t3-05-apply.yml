@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref }}
-          fetch-depth: 3
+          fetch-depth: 2
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -24,7 +24,7 @@ jobs:
       - name: Recover and run verified application script
         shell: bash
         run: |
-          git show HEAD^^:.github/workflows/t3-05-apply.yml > /tmp/t3-05-original.yml
+          git show 90a1b7edfca4452748c395572942f1a5094259a3:.github/workflows/t3-05-apply.yml > /tmp/t3-05-original.yml
           python3 - <<'PY'
           from pathlib import Path
 
@@ -34,6 +34,14 @@ jobs:
           end = source.index("          PY\n", start) + len("          PY\n")
           block = source[start:end]
           script = '\n'.join(line[10:] if line.startswith('          ') else line for line in block.splitlines()) + '\n'
+          script = script.replace(
+              "('<strong>Battle</strong>', '<strong>{BattleChromeJA.battleTab}</strong>', 3),",
+              "('<strong>Battle</strong>', '<strong>{BattleChromeJA.battleTab}</strong>', 2),"
+          )
+          duplicate = "              ('<h3 class=\"switchselect\">Team so far</h3>', '<h3 class=\"switchselect\">{BattleChromeJA.teamSoFar}</h3>', 1),\n"
+          if script.count(duplicate) != 2:
+              raise SystemExit('unexpected Team so far replacement script')
+          script = script.replace(duplicate + duplicate, duplicate.replace(', 1),', ', 2),'))
           Path('/tmp/t3-05-apply.sh').write_text(script)
           PY
           set +e
