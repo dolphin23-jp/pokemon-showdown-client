@@ -64,7 +64,7 @@ jobs:
             cp /tmp/t3-05-test.log t3-05-test-error.log
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add t3-05-test-error.log
+            git add -f t3-05-test-error.log
             git commit -m "Record T3-05 test failure"
             git push origin HEAD:${{ github.head_ref }}
             cat /tmp/t3-05-test.log
@@ -78,6 +78,7 @@ jobs:
           rm -f t3-05-apply-error.log t3-05-test-error.log
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add play.pokemonshowdown.com/src/client-ui-ja-strings.ts play.pokemonshowdown.com/src/panel-battle.tsx test/client-ui-ja-strings.js .github/workflows/t3-05-apply.yml t3-05-apply-error.log t3-05-test-error.log
+          git add play.pokemonshowdown.com/src/client-ui-ja-strings.ts play.pokemonshowdown.com/src/panel-battle.tsx test/client-ui-ja-strings.js
+          git add -u .github/workflows/t3-05-apply.yml t3-05-apply-error.log t3-05-test-error.log
           git commit -m "Apply Japanese battle chrome"
           git push origin HEAD:${{ github.head_ref }}
