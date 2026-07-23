@@ -9,7 +9,7 @@
 
 config.js does not exist. Creating one with default settings...
 Updating version... DONE
-Compiling TS files... (48 files in 7.576s) DONE
+Compiling TS files... (48 files in 7.849s) DONE
 Copying old client files... DONE
 Updating cachebuster and URLs... and news... DONE
 
