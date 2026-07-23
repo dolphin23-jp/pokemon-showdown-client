@@ -9,7 +9,7 @@
 
 config.js does not exist. Creating one with default settings...
 Updating version... DONE
-Compiling TS files... (48 files in 7.849s) DONE
+Compiling TS files... (48 files in 6.089s) DONE
 Copying old client files... DONE
 Updating cachebuster and URLs... and news... DONE
 
@@ -20,17 +20,19 @@ Generated Japanese display names (species=1025, moves=919, abilities=311, items=
 tsc... DONE
 eslint... 
 /home/runner/work/pokemon-showdown-client/pokemon-showdown-client/play.pokemonshowdown.com/src/panel-battle.tsx
-   109:1  warning  This line has a length of 155. Maximum allowed is 120  @stylistic/max-len
-   120:1  warning  This line has a length of 131. Maximum allowed is 120  @stylistic/max-len
-   898:1  warning  This line has a length of 125. Maximum allowed is 120  @stylistic/max-len
-   970:1  warning  This line has a length of 126. Maximum allowed is 120  @stylistic/max-len
-   976:1  warning  This line has a length of 135. Maximum allowed is 120  @stylistic/max-len
-  1023:1  warning  This line has a length of 125. Maximum allowed is 120  @stylistic/max-len
-  1024:1  warning  This line has a length of 126. Maximum allowed is 120  @stylistic/max-len
-  1089:1  warning  This line has a length of 121. Maximum allowed is 120  @stylistic/max-len
-  1096:5  error    Unexpected template string expression                  no-template-curly-in-string
-  1157:1  warning  This line has a length of 124. Maximum allowed is 120  @stylistic/max-len
-  1233:1  warning  This line has a length of 132. Maximum allowed is 120  @stylistic/max-len
+   110:1  error    Expected indentation of 6 tabs but found 5                                                        @stylistic/indent
+   110:6  error    Expected indentation of 6 tab characters but found 5                                              @stylistic/jsx-indent-props
+   111:1  error    Expected indentation of 5 tabs but found 4                                                        @stylistic/indent
+   111:5  error    The closing bracket must be aligned with the line containing the opening tag (expected column 6)  @stylistic/jsx-closing-bracket-location
+   123:1  error    Expected indentation of 7 tabs but found 6                                                        @stylistic/indent
+   123:7  error    Expected indentation of 7 tab characters but found 6                                              @stylistic/jsx-indent-props
+   124:1  error    Expected indentation of 7 tabs but found 6                                                        @stylistic/indent
+   124:7  error    Expected indentation of 7 tab characters but found 6                                              @stylistic/jsx-indent-props
+   125:1  error    Expected indentation of 6 tabs but found 5                                                        @stylistic/indent
+   125:6  error    The closing bracket must be aligned with the line containing the opening tag (expected column 7)  @stylistic/jsx-closing-bracket-location
+   977:1  warning  This line has a length of 126. Maximum allowed is 120                                             @stylistic/max-len
+  1109:1  error    Expected indentation of 3 tabs but found 4                                                        @stylistic/indent
 
-✖ 11 problems (1 error, 10 warnings)
+✖ 12 problems (11 errors, 1 warning)
+  11 errors and 0 warnings potentially fixable with the `--fix` option.
 
