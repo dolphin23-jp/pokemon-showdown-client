@@ -50,11 +50,12 @@ jobs:
           status=$?
           set -e
           if [ "$status" -ne 0 ]; then
-            cp /tmp/t3-05-apply.log t3-05-apply-error.log
+            error_file="t3-05-apply-error-${GITHUB_RUN_ID}.log"
+            cp /tmp/t3-05-apply.log "$error_file"
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add t3-05-apply-error.log
-            git commit -m "Record T3-05 application failure"
+            git add "$error_file"
+            git commit -m "Record T3-05 application failure ${GITHUB_RUN_ID}"
             git push origin HEAD:${{ github.head_ref }}
             cat /tmp/t3-05-apply.log
             exit "$status"
@@ -67,9 +68,9 @@ jobs:
         shell: bash
         run: |
           rm .github/workflows/t3-05-apply.yml
-          rm -f t3-05-apply-error.log
+          rm -f t3-05-apply-error*.log
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add play.pokemonshowdown.com/src/client-ui-ja-strings.ts play.pokemonshowdown.com/src/panel-battle.tsx test/client-ui-ja-strings.js .github/workflows/t3-05-apply.yml t3-05-apply-error.log
+          git add play.pokemonshowdown.com/src/client-ui-ja-strings.ts play.pokemonshowdown.com/src/panel-battle.tsx test/client-ui-ja-strings.js .github/workflows/t3-05-apply.yml t3-05-apply-error*.log
           git commit -m "Apply Japanese battle chrome"
           git push origin HEAD:${{ github.head_ref }}
