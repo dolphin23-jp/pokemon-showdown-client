@@ -1,0 +1,38 @@
+name: Phase 3 T3-04 diagnostics
+
+on:
+  pull_request:
+    paths:
+      - play.pokemonshowdown.com/src/client-ui-ja-strings.ts
+      - test/client-ui-ja-strings.js
+      - .github/workflows/phase3-t3-04-diagnostics.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Capture client test output
+        run: |
+          set +e
+          npm test > "$RUNNER_TEMP/t3-04-client-test.log" 2>&1
+          status=$?
+          echo "$status" > "$RUNNER_TEMP/t3-04-client-test.status"
+          exit 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: phase-3-t3-04-diagnostics
+          path: |
+            ${{ runner.temp }}/t3-04-client-test.log
+            ${{ runner.temp }}/t3-04-client-test.status
