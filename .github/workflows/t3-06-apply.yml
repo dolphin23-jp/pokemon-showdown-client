@@ -1,0 +1,97 @@
+name: Apply Phase 3 T3-06 forfeit dialog
+
+on:
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.head_ref == 'agent/phase3-t3-06-forfeit-dialog'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply T3-06
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          panel = Path('play.pokemonshowdown.com/src/panel-popups.tsx')
+          source = panel.read_text()
+
+          import_marker = 'import { PSHeader } from "./panel-topbar";\n'
+          import_line = 'import { ForfeitDialogJA } from "./client-ui-ja-strings";\n'
+          if import_line not in source:
+              if source.count(import_marker) != 1:
+                  raise SystemExit('panel-popups import marker changed')
+              source = source.replace(import_marker, import_marker + import_line)
+
+          replacements = {
+              '<p>Forfeiting makes you lose the battle. Are you sure?</p>': '<p>{ForfeitDialogJA.confirm}</p>',
+              '<strong>Forfeit and close</strong>': '<strong>{ForfeitDialogJA.forfeitAndClose}</strong>',
+              '>Just forfeit</button>': '>{ForfeitDialogJA.justForfeit}</button>',
+          }
+          for old, new in replacements.items():
+              if source.count(old) != 1:
+                  raise SystemExit(f'expected exactly one occurrence: {old}')
+              source = source.replace(old, new)
+
+          protected_commands = [
+              'data-cmd="/closeand /inopener /closeand /forfeit"',
+              'data-cmd="/closeand /inopener /forfeit"',
+          ]
+          for command in protected_commands:
+              if source.count(command) != 1:
+                  raise SystemExit(f'protected command changed: {command}')
+          panel.write_text(source)
+
+          test_path = Path('test/client-ui-ja-strings.js')
+          test_source = test_path.read_text()
+          old_target = "\t\tfile: 'play.pokemonshowdown.com/src/panel-popups.tsx',\n\t\tclasses: ['BattleForfeitPanel', 'ReplacePlayerPanel'],\n\t},"
+          new_target = "\t\tfile: 'play.pokemonshowdown.com/src/panel-popups.tsx',\n\t\tclasses: ['BattleForfeitPanel', 'ReplacePlayerPanel'],\n\t\tappliedGroups: ['ForfeitDialogSources'],\n\t},"
+          if test_source.count(old_target) != 1:
+              raise SystemExit('popup inventory target changed')
+          test_source = test_source.replace(old_target, new_target)
+
+          regression = r'''
+
+test('localizes the forfeit dialog without changing forfeit commands', () => {
+	const source = fs.readFileSync(
+		path.join(ROOT, 'play.pokemonshowdown.com/src/panel-popups.tsx'),
+		'utf8'
+	);
+	assert.match(source, /ForfeitDialogJA\.confirm/);
+	assert.match(source, /ForfeitDialogJA\.forfeitAndClose/);
+	assert.match(source, /ForfeitDialogJA\.justForfeit/);
+	assert.match(source, /data-cmd="\/closeand \/inopener \/closeand \/forfeit"/);
+	assert.match(source, /data-cmd="\/closeand \/inopener \/forfeit"/);
+	assert.doesNotMatch(source, /Forfeiting makes you lose the battle\. Are you sure\?/);
+});
+'''
+          if "test('localizes the forfeit dialog without changing forfeit commands'" not in test_source:
+              test_source += regression
+          test_path.write_text(test_source)
+          PY
+      - name: Install dependencies
+        run: npm ci
+      - name: Validate
+        run: npm test
+      - name: Commit verified T3-06
+        run: |
+          rm .github/workflows/t3-06-apply.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Localize the forfeit dialog"
+          git push origin HEAD:${{ github.head_ref }}
