@@ -9,81 +9,15 @@ on:
   pull_request:
     branches: [ master ]
 
-permissions:
-  contents: write
-
 jobs:
-  protect-t3-07-import-export:
-    if: github.event_name == 'pull_request' && github.head_ref == 'agent/phase3-t3-07-teambuilder-labels'
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-    - uses: actions/checkout@v6
-      with:
-        ref: agent/phase3-t3-07-teambuilder-labels
-        fetch-depth: 0
-    - name: Use Node.js 22
-      uses: actions/setup-node@v6
-      with:
-        node-version: 22.x
-        cache: 'npm'
-    - run: npm ci
-    - name: Protect and validate Import Export scope
-      id: protect
-      shell: bash
-      run: |
-        set +e
-        : > t3-07-import-export.log
-        echo '== protect scope ==' >> t3-07-import-export.log
-        node build-tools/fix-t3-07-import-export-scope.js >> t3-07-import-export.log 2>&1
-        status=$?
-        echo "protect_status=$status" >> t3-07-import-export.log
-
-        if [ "$status" -eq 0 ]; then
-          rm -f build-tools/fix-t3-07-import-export-scope.js
-          echo '== eslint fix ==' >> t3-07-import-export.log
-          npx eslint --fix \
-            play.pokemonshowdown.com/src/panel-teambuilder.tsx \
-            test/teambuilder-ja-chrome.js >> t3-07-import-export.log 2>&1
-          status=$?
-          echo "eslint_status=$status" >> t3-07-import-export.log
-        fi
-
-        if [ "$status" -eq 0 ]; then
-          echo '== npm test ==' >> t3-07-import-export.log
-          npm test >> t3-07-import-export.log 2>&1
-          status=$?
-          echo "test_status=$status" >> t3-07-import-export.log
-        fi
-
-        echo "status=$status" >> "$GITHUB_OUTPUT"
-        exit 0
-    - name: Upload Import Export diagnostics
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: t3-07-import-export-${{ github.run_id }}
-        path: t3-07-import-export.log
-        if-no-files-found: error
-        retention-days: 1
-    - name: Commit verified protection
-      if: steps.protect.outputs.status == '0'
-      run: |
-        rm -f t3-07-import-export.log
-        git config user.name "github-actions[bot]"
-        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git add -A
-        git commit -m "Keep Team Import Export UI in English"
-        git push origin HEAD:agent/phase3-t3-07-teambuilder-labels
-    - name: Fail if protection failed
-      if: steps.protect.outputs.status != '0'
-      run: exit 1
-
   build:
+
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
         node-version: [22.x]
+
     steps:
     - uses: actions/checkout@v6
     - name: Use Node.js ${{ matrix.node-version }}
