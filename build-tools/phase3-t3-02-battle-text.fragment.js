@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 const PHASE3_T3_02_BATTLE_TEXT = {
 	afteryou: { activate: '  [TARGET]はお言葉に甘えた！' },
 	aquaring: {
