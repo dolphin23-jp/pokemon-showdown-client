@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   apply-t3-07:
-    if: github.event_name == 'push' && github.event.head_commit.message == 'Retry T3-07 Teambuilder labels'
+    if: github.event_name == 'push' && github.event.head_commit.message == 'Finalize T3-07 Teambuilder labels'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -61,6 +61,16 @@ jobs:
         rm -f t3-07-failure.log
         node build-tools/apply-t3-07-teambuilder-labels.js > t3-07-apply.log 2>&1
         status=$?
+        if [ "$status" -eq 0 ]; then
+          npx eslint --fix \
+            play.pokemonshowdown.com/src/battle-team-editor.tsx \
+            play.pokemonshowdown.com/src/panel-teambuilder.tsx \
+            play.pokemonshowdown.com/src/panel-teambuilder-team.tsx \
+            play.pokemonshowdown.com/src/panel-teamdropdown.tsx \
+            test/client-ui-ja-strings.js \
+            test/teambuilder-ja-chrome.js >> t3-07-apply.log 2>&1
+          status=$?
+        fi
         if [ "$status" -eq 0 ]; then
           npm test >> t3-07-apply.log 2>&1
           status=$?
