@@ -1,0 +1,36 @@
+
+> pokemon-showdown-client@0.11.2 test
+> npm run build && echo "tsc... \c" && tsc && echo "DONE
+> eslint... \c" && eslint --cache --cache-location caches/eslintcache.json --max-warnings 0 && echo "DONE" && node --test test/*.js
+
+
+> pokemon-showdown-client@0.11.2 build
+> node build && npm run generate-japanese-display-names
+
+config.js does not exist. Creating one with default settings...
+Updating version... DONE
+Compiling TS files... (48 files in 7.576s) DONE
+Copying old client files... DONE
+Updating cachebuster and URLs... and news... DONE
+
+> pokemon-showdown-client@0.11.2 generate-japanese-display-names
+> node build-tools/generate-japanese-display-names.js
+
+Generated Japanese display names (species=1025, moves=919, abilities=311, items=2115)
+tsc... DONE
+eslint... 
+/home/runner/work/pokemon-showdown-client/pokemon-showdown-client/play.pokemonshowdown.com/src/panel-battle.tsx
+   109:1  warning  This line has a length of 155. Maximum allowed is 120  @stylistic/max-len
+   120:1  warning  This line has a length of 131. Maximum allowed is 120  @stylistic/max-len
+   898:1  warning  This line has a length of 125. Maximum allowed is 120  @stylistic/max-len
+   970:1  warning  This line has a length of 126. Maximum allowed is 120  @stylistic/max-len
+   976:1  warning  This line has a length of 135. Maximum allowed is 120  @stylistic/max-len
+  1023:1  warning  This line has a length of 125. Maximum allowed is 120  @stylistic/max-len
+  1024:1  warning  This line has a length of 126. Maximum allowed is 120  @stylistic/max-len
+  1089:1  warning  This line has a length of 121. Maximum allowed is 120  @stylistic/max-len
+  1096:5  error    Unexpected template string expression                  no-template-curly-in-string
+  1157:1  warning  This line has a length of 124. Maximum allowed is 120  @stylistic/max-len
+  1233:1  warning  This line has a length of 132. Maximum allowed is 120  @stylistic/max-len
+
+✖ 11 problems (1 error, 10 warnings)
+
