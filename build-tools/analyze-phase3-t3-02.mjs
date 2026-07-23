@@ -33,8 +33,14 @@ function parseSource(relativePath, variableName) {
 }
 
 function keyName(name, sourceFile) {
-	if (ts.isIdentifier(name) || ts.isStringLiteral(name) || ts.isNumericLiteral(name) ||
-		ts.isNoSubstitutionTemplateLiteral(name)) return name.text;
+	if (ts.isIdentifier(name) || ts.isPrivateIdentifier(name)) return name.text;
+	if (ts.isStringLiteral(name) || ts.isNumericLiteral(name) || ts.isNoSubstitutionTemplateLiteral(name)) {
+		return name.text;
+	}
+	if (ts.isComputedPropertyName(name) &&
+		(ts.isStringLiteral(name.expression) || ts.isNoSubstitutionTemplateLiteral(name.expression))) {
+		return name.expression.text;
+	}
 	throw new Error(`Unsupported key: ${name.getText(sourceFile)}`);
 }
 
