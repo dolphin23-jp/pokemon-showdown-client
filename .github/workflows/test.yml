@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   apply-t3-05-timer:
-    if: github.event_name == 'pull_request' && github.head_ref == 'agent/phase3-t3-05-timer-followup'
+    if: github.event_name == 'push' && github.event.head_commit.message == 'Run T3-05 timer follow-up'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
