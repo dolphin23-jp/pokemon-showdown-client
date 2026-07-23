@@ -39,12 +39,22 @@ jobs:
 
       - name: Extract T3-02 move templates
         run: |
+          set +e
           node client/build-tools/analyze-phase3-t3-02.mjs \
             server \
-            "$RUNNER_TEMP/phase-3-t3-02-targets.json"
+            "$RUNNER_TEMP/phase-3-t3-02-targets.json" \
+            >"$RUNNER_TEMP/phase-3-t3-02-analysis.log" 2>&1
+          status=$?
+          cat "$RUNNER_TEMP/phase-3-t3-02-analysis.log"
+          echo "$status" > "$RUNNER_TEMP/phase-3-t3-02-analysis.status"
+          exit 0
 
       - name: Upload T3-02 analysis
         uses: actions/upload-artifact@v4
         with:
           name: phase-3-t3-02-targets
-          path: ${{ runner.temp }}/phase-3-t3-02-targets.json
+          path: |
+            ${{ runner.temp }}/phase-3-t3-02-targets.json
+            ${{ runner.temp }}/phase-3-t3-02-analysis.log
+            ${{ runner.temp }}/phase-3-t3-02-analysis.status
+          if-no-files-found: warn
