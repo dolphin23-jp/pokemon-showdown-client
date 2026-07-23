@@ -31,15 +31,16 @@ const replacements = [
 		"{room.searchTerms.length ? ' search results' : room.curFolder ? ' folder' : ''}",
 	],
 ];
+for (const [oldText, newText] of replacements) panel = panel.split(oldText).join(newText);
 for (const [oldText, newText] of replacements) {
-	assert.equal(panel.split(oldText).length - 1, 1, `expected one protected Import/Export occurrence: ${oldText}`);
-	panel = panel.replace(oldText, newText);
+	assert.ok(!panel.includes(oldText), `protected Import/Export reference remains: ${oldText}`);
+	assert.ok(panel.includes(newText), `protected English Import/Export text missing: ${newText}`);
 }
 fs.writeFileSync(PANEL_PATH, panel);
 
 let testSource = fs.readFileSync(TEST_PATH, 'utf8');
-const oldTest = `test('keeps Team Import/Export UI in English', () => {\n\tconst source = TARGETS.map(file => fs.readFileSync(path.join(ROOT, file), 'utf8')).join('\\n');\n\tassert.match(source, /Import\\/Export/);\n\tassert.match(source, /Paste exported teams, pokepaste URLs, or JSON here/);\n});`;
-const newTest = `test('keeps Team Import/Export UI in English', () => {\n\tconst source = TARGETS.map(file => fs.readFileSync(path.join(ROOT, file), 'utf8')).join('\\n');\n\tconst panel = fs.readFileSync(\n\t\tpath.join(ROOT, 'play.pokemonshowdown.com/src/panel-teambuilder.tsx'),\n\t\t'utf8'\n\t);\n\tassert.match(source, /Import\\/Export/);\n\tassert.match(source, /Paste exported teams, pokepaste URLs, or JSON here/);\n\tassert.match(panel, /> Back/);\n\tassert.match(panel, /Save \\(not allowed for partial exports\\)/);\n\tassert.match(panel, /> Save changes/);\n\tassert.match(panel, /> Backup/);\n\tassert.match(panel, /' search results'/);\n\tassert.match(panel, /' folder'/);\n\tassert.doesNotMatch(\n\t\tpanel,\n\t\t/TeambuilderListChromeJA\\.(?:saveNotAllowedForPartialExports|saveChanges|backup|searchResults|folder)/\n\t);\n});`;
-assert.equal(testSource.split(oldTest).length - 1, 1, 'Import/Export regression test shape changed');
-testSource = testSource.replace(oldTest, newTest);
+const regressionName = "test('keeps all Team Import/Export controls in English'";
+if (!testSource.includes(regressionName)) {
+	testSource += `\n\ntest('keeps all Team Import/Export controls in English', () => {\n\tconst source = TARGETS.map(file => fs.readFileSync(path.join(ROOT, file), 'utf8')).join('\\n');\n\tconst panel = fs.readFileSync(\n\t\tpath.join(ROOT, 'play.pokemonshowdown.com/src/panel-teambuilder.tsx'),\n\t\t'utf8'\n\t);\n\tassert.match(source, /Import\\/Export/);\n\tassert.match(source, /Paste exported teams, pokepaste URLs, or JSON here/);\n\tassert.match(panel, /> Back/);\n\tassert.match(panel, /Save \\(not allowed for partial exports\\)/);\n\tassert.match(panel, /> Save changes/);\n\tassert.match(panel, /> Backup/);\n\tassert.match(panel, /' search results'/);\n\tassert.match(panel, /' folder'/);\n\tassert.doesNotMatch(\n\t\tpanel,\n\t\t/TeambuilderListChromeJA\\.(?:saveNotAllowedForPartialExports|saveChanges|backup|searchResults|folder)/\n\t);\n});\n`;
+}
 fs.writeFileSync(TEST_PATH, testSource);
