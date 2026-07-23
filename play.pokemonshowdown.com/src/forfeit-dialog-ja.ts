@@ -29,7 +29,7 @@ function localizeForfeitDialog() {
 	if (!forfeitAndClose || !justForfeit) return;
 
 	const container = forfeitAndClose.closest('.pad');
-	if (!container || !container.contains(justForfeit)) return;
+	if (!container?.contains(justForfeit)) return;
 
 	const prompt = container.querySelector('p');
 	if (prompt) prompt.textContent = ForfeitDialogJA.confirm;
