@@ -192,12 +192,14 @@ function readFrameworkSources() {
 		if (!ts.isVariableStatement(statement)) continue;
 		for (const declaration of statement.declarationList.declarations) {
 			if (!ts.isIdentifier(declaration.name) || !declaration.name.text.endsWith('Sources')) continue;
+			let initializer = declaration.initializer;
+			if (initializer && ts.isAsExpression(initializer)) initializer = initializer.expression;
 			assert.ok(
-				declaration.initializer && ts.isObjectLiteralExpression(declaration.initializer),
+				initializer && ts.isObjectLiteralExpression(initializer),
 				`${declaration.name.text} must be an object literal`
 			);
 			const entries = [];
-			for (const property of declaration.initializer.properties) {
+			for (const property of initializer.properties) {
 				assert.ok(ts.isPropertyAssignment(property), `${declaration.name.text} must use property assignments`);
 				assert.ok(ts.isArrayLiteralExpression(property.initializer), `${property.name.getText()} must be a tuple`);
 				assert.equal(property.initializer.elements.length, 2, `${property.name.getText()} must contain English and Japanese`);
