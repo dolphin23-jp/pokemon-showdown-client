@@ -19,32 +19,39 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
-      - name: Apply T3-04 lint-only corrections
+      - name: Apply T3-04 test correction
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         env:
           HEAD_BRANCH: ${{ github.head_ref }}
         run: |
           python - <<'PY'
           from pathlib import Path
-          path = Path('play.pokemonshowdown.com/src/client-ui-ja-strings.ts')
+          path = Path('test/client-ui-ja-strings.js')
           text = path.read_text()
-          replacements = {
-              "if (Object.prototype.hasOwnProperty.call(strings, english)) {": "if (strings[english] !== undefined) {",
-              "saveValueEvs: ['save \\${…} EVs', '努力値を\\${…}節約できます'],": "// eslint-disable-next-line no-template-curly-in-string\n\tsaveValueEvs: ['save ${…} EVs', '努力値を${…}節約できます'],",
-              "matchingValue: ['matching \"\\${…}\"', '「\\${…}」に一致する'],": "// eslint-disable-next-line no-template-curly-in-string\n\tmatchingValue: ['matching \"${…}\"', '「${…}」に一致する'],",
-          }
-          for old, new in replacements.items():
-              if old in text:
-                  text = text.replace(old, new)
-              elif new not in text:
-                  raise SystemExit(f'T3-04 correction marker not found: {old}')
-          path.write_text(text)
+          old = """\t\t\tassert.ok(
+\t\t\t\tdeclaration.initializer && ts.isObjectLiteralExpression(declaration.initializer),
+\t\t\t\t`${declaration.name.text} must be an object literal`
+\t\t\t);
+\t\t\tconst entries = [];
+\t\t\tfor (const property of declaration.initializer.properties) {"""
+          new = """\t\t\tlet initializer = declaration.initializer;
+\t\t\tif (initializer && ts.isAsExpression(initializer)) initializer = initializer.expression;
+\t\t\tassert.ok(
+\t\t\t\tinitializer && ts.isObjectLiteralExpression(initializer),
+\t\t\t\t`${declaration.name.text} must be an object literal`
+\t\t\t);
+\t\t\tconst entries = [];
+\t\t\tfor (const property of initializer.properties) {"""
+          if old in text:
+              path.write_text(text.replace(old, new))
+          elif new not in text:
+              raise SystemExit('T3-04 AST correction marker not found')
           PY
-          git add play.pokemonshowdown.com/src/client-ui-ja-strings.ts
+          git add test/client-ui-ja-strings.js
           if ! git diff --cached --quiet; then
             git config user.name github-actions[bot]
             git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-            git commit -m "Preserve inventory placeholder literals"
+            git commit -m "Handle const assertions in UI chrome test"
             git push origin "HEAD:${HEAD_BRANCH}"
           fi
       - uses: actions/setup-node@v4
