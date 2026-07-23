@@ -235,7 +235,7 @@ class TimerButton extends preact.Component<{ room: BattleRoom, top: number }> {
 		return `${minutes}:${(seconds < 10 ? '0' : '')}${seconds}`;
 	}
 	render() {
-		let time = 'Timer';
+		let time: string = BattleChromeJA.timer;
 		const room = this.props.room;
 		if (!this.timerInterval && room.battle.kickingInactive) {
 			this.timerInterval = setInterval(() => {

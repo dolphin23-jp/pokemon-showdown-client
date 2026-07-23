@@ -73,6 +73,7 @@ const BattleChromeSources = {
 	teamPreviewNotifyTitle: ['Team preview!', '選出してください'],
 	teamPreviewNotifyBody: ['Choose your team order in your battle', '対戦開始時の選出順を決めてください'],
 	opponentLabel: ['Opponent:', '対戦相手：'],
+	timer: ['Timer', 'タイマー'],
 	play: ['Play', '再生'],
 	pause: ['Pause', '一時停止'],
 	firstTurn: ['First turn', '最初のターン'],

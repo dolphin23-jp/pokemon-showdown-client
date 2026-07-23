@@ -1,1 +1,0 @@
-Advance the pull-request head so the installed validation job runs.
