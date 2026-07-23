@@ -1,0 +1,93 @@
+[
+  {
+    "file": "play.pokemonshowdown.com/src/battle-team-editor.tsx",
+    "replacements": 43,
+    "groups": [
+      "SharedChromeSources",
+      "TeambuilderChromeSources"
+    ],
+    "exports": [
+      "SharedChromeJA",
+      "TeambuilderChromeJA"
+    ]
+  },
+  {
+    "file": "play.pokemonshowdown.com/src/panel-teambuilder.tsx",
+    "replacements": 20,
+    "groups": [
+      "SharedChromeSources",
+      "TeambuilderListChromeSources"
+    ],
+    "exports": [
+      "SharedChromeJA",
+      "TeambuilderListChromeJA"
+    ]
+  },
+  {
+    "file": "play.pokemonshowdown.com/src/panel-teambuilder-team.tsx",
+    "replacements": 23,
+    "groups": [
+      "SharedChromeSources",
+      "TeambuilderTeamChromeSources"
+    ],
+    "exports": [
+      "SharedChromeJA",
+      "TeambuilderTeamChromeJA"
+    ]
+  },
+  {
+    "file": "play.pokemonshowdown.com/src/panel-teamdropdown.tsx",
+    "replacements": 15,
+    "groups": [
+      "SharedChromeSources",
+      "TeamDropdownChromeSources"
+    ],
+    "exports": [
+      "SharedChromeJA",
+      "TeamDropdownChromeJA"
+    ]
+  }
+]
+
+> pokemon-showdown-client@0.11.2 test
+> npm run build && echo "tsc... \c" && tsc && echo "DONE
+> eslint... \c" && eslint --cache --cache-location caches/eslintcache.json --max-warnings 0 && echo "DONE" && node --test test/*.js
+
+
+> pokemon-showdown-client@0.11.2 build
+> node build && npm run generate-japanese-display-names
+
+config.js does not exist. Creating one with default settings...
+Updating version... DONE
+Compiling TS files... (49 files in 7.868s) DONE
+Copying old client files... DONE
+Updating cachebuster and URLs... and news... DONE
+
+> pokemon-showdown-client@0.11.2 generate-japanese-display-names
+> node build-tools/generate-japanese-display-names.js
+
+Generated Japanese display names (species=1025, moves=919, abilities=311, items=2115)
+tsc... DONE
+eslint... 
+/home/runner/work/pokemon-showdown-client/pokemon-showdown-client/build-tools/apply-t3-07-teambuilder-labels.js
+   78:51  error    Unexpected template string expression                  no-template-curly-in-string
+  167:1   warning  This line has a length of 132. Maximum allowed is 120  @stylistic/max-len
+  190:56  error    Unexpected template string expression                  no-template-curly-in-string
+  274:1   warning  This line has a length of 125. Maximum allowed is 120  @stylistic/max-len
+  283:1   warning  This line has a length of 130. Maximum allowed is 120  @stylistic/max-len
+  326:1   warning  This line has a length of 135. Maximum allowed is 120  @stylistic/max-len
+
+/home/runner/work/pokemon-showdown-client/pokemon-showdown-client/play.pokemonshowdown.com/src/battle-team-editor.tsx
+  3376:47  error    Unexpected template string expression                  no-template-curly-in-string
+  3664:1   warning  This line has a length of 128. Maximum allowed is 120  @stylistic/max-len
+  3693:1   warning  This line has a length of 124. Maximum allowed is 120  @stylistic/max-len
+
+/home/runner/work/pokemon-showdown-client/pokemon-showdown-client/play.pokemonshowdown.com/src/panel-teambuilder-team.tsx
+  288:1  warning  This line has a length of 166. Maximum allowed is 120  @stylistic/max-len
+
+/home/runner/work/pokemon-showdown-client/pokemon-showdown-client/play.pokemonshowdown.com/src/panel-teamdropdown.tsx
+  431:1  warning  This line has a length of 132. Maximum allowed is 120  @stylistic/max-len
+  434:1  warning  This line has a length of 129. Maximum allowed is 120  @stylistic/max-len
+
+✖ 12 problems (3 errors, 9 warnings)
+
