@@ -1,0 +1,27 @@
+[
+  {
+    "file": "play.pokemonshowdown.com/src/battle-team-editor.tsx",
+    "replacements": 41
+  },
+  {
+    "file": "play.pokemonshowdown.com/src/panel-teambuilder.tsx",
+    "replacements": 22
+  },
+  {
+    "file": "play.pokemonshowdown.com/src/panel-teambuilder-team.tsx",
+    "replacements": 20
+  },
+  {
+    "file": "play.pokemonshowdown.com/src/panel-teamdropdown.tsx",
+    "replacements": 8
+  }
+]
+
+/home/runner/work/pokemon-showdown-client/pokemon-showdown-client/play.pokemonshowdown.com/src/battle-team-editor.tsx
+  3928:32  error  Parsing error: '{' or JSX element expected
+
+/home/runner/work/pokemon-showdown-client/pokemon-showdown-client/play.pokemonshowdown.com/src/panel-teambuilder.tsx
+  885:113  error  Parsing error: '{' or JSX element expected
+
+✖ 2 problems (2 errors, 0 warnings)
+
