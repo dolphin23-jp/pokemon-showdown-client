@@ -9,15 +9,46 @@ on:
   pull_request:
     branches: [ master ]
 
+permissions:
+  contents: write
+
 jobs:
-  build:
-
+  protect-t3-07-import-export:
+    if: github.event_name == 'pull_request' && github.head_ref == 'agent/phase3-t3-07-teambuilder-labels'
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        ref: agent/phase3-t3-07-teambuilder-labels
+        fetch-depth: 0
+    - name: Use Node.js 22
+      uses: actions/setup-node@v6
+      with:
+        node-version: 22.x
+        cache: 'npm'
+    - run: npm ci
+    - name: Protect Import Export scope
+      run: |
+        node build-tools/fix-t3-07-import-export-scope.js
+        rm build-tools/fix-t3-07-import-export-scope.js
+        npx eslint --fix \
+          play.pokemonshowdown.com/src/panel-teambuilder.tsx \
+          test/teambuilder-ja-chrome.js
+        npm test
+    - name: Commit verified protection
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add -A
+        git commit -m "Keep Team Import Export UI in English"
+        git push origin HEAD:agent/phase3-t3-07-teambuilder-labels
 
+  build:
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         node-version: [22.x]
-
     steps:
     - uses: actions/checkout@v6
     - name: Use Node.js ${{ matrix.node-version }}
