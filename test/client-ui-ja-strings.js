@@ -12,7 +12,10 @@ const FRAMEWORK_PATH = path.join(
 	'play.pokemonshowdown.com/src/client-ui-ja-strings.ts'
 );
 const TARGETS = [
-	{ file: 'play.pokemonshowdown.com/src/panel-battle.tsx' },
+	{
+		file: 'play.pokemonshowdown.com/src/panel-battle.tsx',
+		appliedGroups: ['BattleChromeSources', 'SharedChromeSources'],
+	},
 	{
 		file: 'play.pokemonshowdown.com/src/panel-popups.tsx',
 		classes: ['BattleForfeitPanel', 'ReplacePlayerPanel'],
@@ -127,7 +130,7 @@ function targetRoots(sourceFile, target) {
 	return roots;
 }
 
-function scanInventorySource() {
+function scanInventorySource(groups) {
 	const entries = [];
 	for (const target of TARGETS) {
 		const filePath = path.join(ROOT, target.file);
@@ -141,6 +144,18 @@ function scanInventorySource() {
 		function addText(rawText) {
 			const text = normalizeText(rawText);
 			if (text && hasEnglish(text)) entries.push(text);
+		}
+		function addAppliedReference(node) {
+			if (!target.appliedGroups || !ts.isPropertyAccessExpression(node) || !ts.isIdentifier(node.expression)) {
+				return;
+			}
+			const groupName = node.expression.text.replace(/JA$/, 'Sources');
+			if (!target.appliedGroups.includes(groupName)) return;
+			const group = groups.get(groupName);
+			assert.ok(group, `${target.file}: missing ${groupName}`);
+			const entry = group.find(candidate => candidate.key === node.name.text);
+			assert.ok(entry, `${target.file}: unknown ${node.expression.text}.${node.name.text}`);
+			entries.push(entry.english);
 		}
 		function visit(node) {
 			if (ts.isJsxText(node)) {
@@ -171,6 +186,7 @@ function scanInventorySource() {
 			} else if (ts.isCallExpression(node)) {
 				collectNotify(node, addText);
 			}
+			addAppliedReference(node);
 			ts.forEachChild(node, visit);
 		}
 		for (const root of targetRoots(sourceFile, target)) visit(root);
@@ -219,11 +235,11 @@ function readFrameworkSources() {
 }
 
 test('covers every Phase 3 UI chrome inventory string exactly once', () => {
-	const inventoryEntries = scanInventorySource();
-	const inventoryStrings = new Set(inventoryEntries);
 	const { source, groups } = readFrameworkSources();
-	assert.equal(inventoryEntries.length, 319);
-	assert.equal(inventoryStrings.size, 227);
+	const inventoryEntries = scanInventorySource(groups);
+	const inventoryStrings = new Set(inventoryEntries);
+	assert.equal(inventoryEntries.length, 325);
+	assert.equal(inventoryStrings.size, 233);
 	assert.deepEqual(
 		[...groups.keys()].sort(),
 		[
@@ -239,8 +255,8 @@ test('covers every Phase 3 UI chrome inventory string exactly once', () => {
 
 	const frameworkEntries = [...groups.values()].flat();
 	const frameworkStrings = new Set(frameworkEntries.map(entry => entry.english));
-	assert.equal(frameworkEntries.length, 227);
-	assert.equal(frameworkStrings.size, 227, 'an English source string is assigned to more than one key');
+	assert.equal(frameworkEntries.length, 233);
+	assert.equal(frameworkStrings.size, 233, 'an English source string is assigned to more than one key');
 	assert.deepEqual(
 		[...frameworkStrings].sort(),
 		[...inventoryStrings].sort()
