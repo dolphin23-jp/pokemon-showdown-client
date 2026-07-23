@@ -30,8 +30,8 @@ jobs:
           text = path.read_text()
           replacements = {
               "if (Object.prototype.hasOwnProperty.call(strings, english)) {": "if (strings[english] !== undefined) {",
-              "saveValueEvs: ['save ${…} EVs', '努力値を${…}節約できます'],": "saveValueEvs: ['save \\${…} EVs', '努力値を\\${…}節約できます'],",
-              "matchingValue: ['matching \"${…}\"', '「${…}」に一致する'],": "matchingValue: ['matching \"\\${…}\"', '「\\${…}」に一致する'],",
+              "saveValueEvs: ['save \\${…} EVs', '努力値を\\${…}節約できます'],": "// eslint-disable-next-line no-template-curly-in-string\n\tsaveValueEvs: ['save ${…} EVs', '努力値を${…}節約できます'],",
+              "matchingValue: ['matching \"\\${…}\"', '「\\${…}」に一致する'],": "// eslint-disable-next-line no-template-curly-in-string\n\tmatchingValue: ['matching \"${…}\"', '「${…}」に一致する'],",
           }
           for old, new in replacements.items():
               if old in text:
@@ -44,7 +44,7 @@ jobs:
           if ! git diff --cached --quiet; then
             git config user.name github-actions[bot]
             git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-            git commit -m "Fix UI chrome framework lint"
+            git commit -m "Preserve inventory placeholder literals"
             git push origin "HEAD:${HEAD_BRANCH}"
           fi
       - uses: actions/setup-node@v4
