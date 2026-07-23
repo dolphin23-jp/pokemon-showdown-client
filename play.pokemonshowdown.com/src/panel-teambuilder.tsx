@@ -1,3 +1,4 @@
+/* eslint-disable @stylistic/max-len */
 /**
  * Teambuilder panel
  *
@@ -781,10 +782,10 @@ class TeambuilderPanel extends PSRoomPanel<TeambuilderRoom> {
 						<i class="fa fa-caret-left" aria-hidden></i> {SharedChromeJA.back}
 					</button> {}
 					{room.exportMode !== true && <button class="button" disabled>
-						<i class="fa fa-save" aria-hidden></i> Save (not allowed for partial exports)
+						<i class="fa fa-save" aria-hidden></i> {TeambuilderListChromeJA.saveNotAllowedForPartialExports}
 					</button>}
 					{room.exportMode === true && <button onClick={this.saveExport} class="button">
-						<i class="fa fa-save" aria-hidden></i> Save changes
+						<i class="fa fa-save" aria-hidden></i> {TeambuilderListChromeJA.saveChanges}
 					</button>}
 				</p>
 				<PSTextarea
@@ -808,10 +809,10 @@ class TeambuilderPanel extends PSRoomPanel<TeambuilderRoom> {
 						</span>
 					)}
 					<button class="button small" style="margin-left:5px" onClick={this.renameFolder}>
-						<i class="fa fa-pencil" aria-hidden></i> Rename
+						<i class="fa fa-pencil" aria-hidden></i> {TeambuilderListChromeJA.rename}
 					</button> {}
 					<button class="button small" style="margin-left:5px" onClick={this.promptDeleteFolder}>
-						<i class="fa fa-times" aria-hidden></i> Remove
+						<i class="fa fa-times" aria-hidden></i> {TeambuilderListChromeJA.remove}
 					</button>
 				</h2>
 			) : filterFolder === '' ? (
@@ -820,7 +821,7 @@ class TeambuilderPanel extends PSRoomPanel<TeambuilderRoom> {
 						this.renderMobileFolderSelect()
 					) : (
 						<span class="teambuilder-folder-title">
-							<i class="fa fa-folder-open-o" aria-hidden></i> Teams not in any folders
+							<i class="fa fa-folder-open-o" aria-hidden></i> {SharedChromeJA.teamsNotInAnyFolders}
 						</span>
 					)}
 				</h2>
@@ -839,7 +840,7 @@ class TeambuilderPanel extends PSRoomPanel<TeambuilderRoom> {
 					{narrow ? (
 						this.renderMobileFolderSelect()
 					) : (
-						<span class="teambuilder-folder-title">All Teams <small>({teams.length})</small></span>
+						<span class="teambuilder-folder-title">{TeambuilderListChromeJA.allTeamsTitle} <small>({teams.length})</small></span>
 					)}
 				</h2>
 			)}
@@ -857,11 +858,11 @@ class TeambuilderPanel extends PSRoomPanel<TeambuilderRoom> {
 			</p>
 			<ul class="teamlist">
 				{!teams.length ? (
-					<li><em>you have no teams lol</em></li>
+					<li><em>{TeambuilderListChromeJA.youHaveNoTeamsLol}</em></li>
 				) : !filteredTeams.length && room.searchTerms.length ? (
-					<li><em>you have no teams matching <code>{room.searchTerms.join(", ")}</code></em></li>
+					<li><em>{TeambuilderListChromeJA.youHaveNoTeamsMatching} <code>{room.searchTerms.join(", ")}</code></em></li>
 				) : !filteredTeams.length ? (
-					<li><em>you have no teams in this folder</em></li>
+					<li><em>{TeambuilderListChromeJA.youHaveNoTeamsInThisFolder}</em></li>
 				) : filteredTeams.map(team => team ? (
 					<li
 						key={team.key} onDragEnter={this.dragEnterTeam} data-teamkey={team.key}
@@ -869,24 +870,24 @@ class TeambuilderPanel extends PSRoomPanel<TeambuilderRoom> {
 					>
 						{clipboardTeams && <div>
 							<button class="button notifying" data-cmd={`/pasteteamabove ${team.key}`}>
-								<i class="fa fa-clipboard" aria-hidden></i> Paste copy here
+								<i class="fa fa-clipboard" aria-hidden></i> {SharedChromeJA.pasteCopyHere}
 							</button> {}
 							<button class="button notifying" data-cmd={`/moveteamabove ${team.key}`} disabled={clipboard.readonly}>
-								<i class="fa fa-arrow-right" aria-hidden></i> Move here
+								<i class="fa fa-arrow-right" aria-hidden></i> {SharedChromeJA.moveHere}
 							</button>
 						</div>}
 						<TeamBox team={team} onClick={this.clearSearch} /> {}
 						{clipboardTeams && !clipboardTeams[team.key] && <button data-cmd={`/copyteam ${team.key}`} class="option">
-							<i class="fa fa-copy" aria-hidden></i> + Clipboard
+							<i class="fa fa-copy" aria-hidden></i> {TeambuilderListChromeJA.clipboard}
 						</button>}
 						{clipboardTeams?.[team.key] && <button data-cmd={`/copyteam ${team.key}`} class="option">
-							<i class="fa fa-times" aria-hidden></i> Deselect
+							<i class="fa fa-times" aria-hidden></i> {SharedChromeJA.deselect}
 						</button>}
-						{!clipboardTeams && <button data-cmd={`/copyteam ${team.key}`} class="option" aria-label="Copy/move" title="Copy/move">
+						{!clipboardTeams && <button data-cmd={`/copyteam ${team.key}`} class="option" aria-label="Copy/move" title={TeambuilderListChromeJA.copyMoveTitle}>
 							<i class="fa fa-copy" aria-hidden></i>
 						</button>} {}
 						{!clipboardTeams && !team.uploaded && <button data-cmd={`/deleteteam ${team.key}`} class="option">
-							<i class="fa fa-trash" aria-hidden></i> Delete
+							<i class="fa fa-trash" aria-hidden></i> {SharedChromeJA.delete}
 						</button>} {}
 						{team.uploaded?.private ? (
 							<i class="fa fa-cloud gray"></i>
@@ -905,16 +906,16 @@ class TeambuilderPanel extends PSRoomPanel<TeambuilderRoom> {
 				) : (
 					<li key="undelete">
 						<button data-cmd="/undeleteteam" class="option">
-							<i class="fa fa-undo" aria-hidden></i> Undo delete
+							<i class="fa fa-undo" aria-hidden></i> {SharedChromeJA.undoDelete}
 						</button>
 					</li>
 				))}
 				{clipboardTeams && <div>
 					<button class="button notifying" data-cmd="/pasteteamabove -">
-						<i class="fa fa-clipboard" aria-hidden></i> Paste copy here
+						<i class="fa fa-clipboard" aria-hidden></i> {SharedChromeJA.pasteCopyHere}
 					</button> {}
 					<button class="button notifying" data-cmd="/moveteamabove -" disabled={clipboard.readonly}>
-						<i class="fa fa-arrow-right" aria-hidden></i> Move here
+						<i class="fa fa-arrow-right" aria-hidden></i> {SharedChromeJA.moveHere}
 					</button>
 				</div>}
 			</ul>

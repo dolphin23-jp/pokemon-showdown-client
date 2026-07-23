@@ -298,7 +298,7 @@ class TeamDropdownPanel extends PSRoomPanel {
 				<i class="fa fa-folder-o" aria-hidden></i> [{baseGen}] <em>{SharedChromeJA.all}</em>
 			</button> {}
 			{hasOtherGens && !this.gen && (
-				<button class="button" onClick={this.setFormat} name="gen" value={baseGen}>Other gens</button>
+				<button class="button" onClick={this.setFormat} name="gen" value={baseGen}>{TeamDropdownChromeJA.otherGens}</button>
 			)}
 		</p>);
 
@@ -306,7 +306,7 @@ class TeamDropdownPanel extends PSRoomPanel {
 			teamList.push(<h2>{TeamDropdownChromeJA.otherGens}</h2>);
 			teamList.push(<p>{genList.sort().map(gen => [
 				<button class={'button' + (gen === this.gen ? ' disabled' : '')} onClick={this.setFormat} name="gen" value={gen}>
-					<i class="fa fa-folder-o" aria-hidden></i> [{gen}] <em>(all)</em>
+					<i class="fa fa-folder-o" aria-hidden></i> [{gen}] <em>{SharedChromeJA.all}</em>
 				</button>,
 				" ",
 			])}</p>);
@@ -342,7 +342,7 @@ class TeamDropdownPanel extends PSRoomPanel {
 
 		return <PSPanelWrapper room={room} width={width}><div class="pad">
 			{teamList}
-			{isEmpty && <p><em>No teams found</em></p>}
+			{isEmpty && <p><em>{TeamDropdownChromeJA.noTeamsFound}</em></p>}
 		</div></PSPanelWrapper>;
 	}
 }
@@ -530,7 +530,7 @@ class FormatDropdownPanel extends PSRoomPanel {
 						if (selectType === 'teambuilder' && format.team) return null;
 						return <li><button value={format.name} class={`option${curFormat === format.id ? ' cur' : ''}`}>
 							{format.name.replace('[Gen 8 ', '[').replace('[Gen 9] ', '').replace('[Gen 7 ', '[')}
-							{format.section === 'No Format' && <em> (uncategorized)</em>}
+							{format.section === 'No Format' && <em> {SharedChromeJA.uncategorized}</em>}
 							<i class="star fa fa-star cur" data-cmd={`/unstar ${format.id}`}></i>
 						</button></li>;
 					})}
@@ -543,7 +543,7 @@ class FormatDropdownPanel extends PSRoomPanel {
 								class={`option${curFormat === format.id ? ' cur' : ''}`}
 							>
 								{format.name.replace('[Gen 8 ', '[').replace('[Gen 9] ', '').replace('[Gen 7 ', '[')}
-								{format.section === 'No Format' && <em> (uncategorized)</em>}
+								{format.section === 'No Format' && <em> {SharedChromeJA.uncategorized}</em>}
 								<i class="star fa fa-star-o" data-cmd={`/star ${format.id}`}></i>
 							</button></li>;
 						} else {
@@ -553,7 +553,7 @@ class FormatDropdownPanel extends PSRoomPanel {
 				</ul>
 			))}
 			{noResults && <p>
-				<em>No formats{!!searchID && ` matching "${searchID}"`} found</em>
+				<em>{TeamDropdownChromeJA.noFormats}{!!searchID && TeamDropdownChromeJA.matchingValue.replace('$' + '{…}', String(searchID))} {TeamDropdownChromeJA.found}</em>
 			</p>}
 			<div style="float: left"></div>
 		</div></PSPanelWrapper>;
