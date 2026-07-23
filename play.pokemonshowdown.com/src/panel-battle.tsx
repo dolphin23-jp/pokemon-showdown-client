@@ -22,6 +22,7 @@ import {
 import type { Args } from "./battle-text-parser";
 import { ModifiableValue } from "./battle-tooltips";
 import { Net } from "./client-connection";
+import { BattleChromeJA, SharedChromeJA } from "./client-ui-ja-strings";
 
 type BattleDesc = {
 	id: RoomID,
@@ -84,49 +85,54 @@ class BattlesPanel extends PSRoomPanel<BattlesRoom> {
 		return <div key={battle.id}><a href={`/${battle.id}`} class="blocklink">
 			{minEloMessage && <small style="float:right">({minEloMessage})</small>}
 			<small>[{format}]</small><br />
-			<em class="p1">{battle.p1}</em> <small class="vs">vs.</small> <em class="p2">{battle.p2}</em>
+			<em class="p1">{battle.p1}</em> <small class="vs">{BattleChromeJA.versus}</small> <em class="p2">{battle.p2}</em>
 		</a></div>;
 	}
 	override render() {
 		const room = this.props.room;
 		return <PSPanelWrapper room={room}><div class="pad">
 			<button class="button" style="float:right;font-size:10pt;margin-top:3px" name="closeRoom">
-				<i class="fa fa-times" aria-hidden></i> Close
+				<i class="fa fa-times" aria-hidden></i> {SharedChromeJA.close}
 			</button>
 			<div class="roomlist">
 				<p>
 					<button class="button" name="refresh" onClick={this.refresh}>
-						<i class="fa fa-refresh" aria-hidden></i> Refresh
+						<i class="fa fa-refresh" aria-hidden></i> {BattleChromeJA.refresh}
 					</button> {}
 					<span
 						style={Dex.getPokemonIcon('meloetta-pirouette') + ';display:inline-block;vertical-align:middle'} class="picon"
-						title="Meloetta is PS's mascot! The Pirouette forme is Fighting-type, and represents our battles."
+						title={BattleChromeJA.meloettaMascotTitle}
 					></span>
 				</p>
 
 				<p>
-					<label class="label">Format:</label><FormatDropdown onChange={this.changeFormat} placeholder="(All formats)" />
+					<label class="label">{SharedChromeJA.formatLabel}</label><FormatDropdown
+						onChange={this.changeFormat} placeholder={BattleChromeJA.allFormatsPlaceholder}
+					/>
 				</p>
 				<label class="label">
-					Minimum Elo: <select name="elofilter" class="select" onChange={this.applyFilters}>
-						<option value="none">None</option><option value="1100">1100</option><option value="1300">1300</option>
+					{BattleChromeJA.minimumEloLabel} <select name="elofilter" class="select" onChange={this.applyFilters}>
+						<option value="none">{BattleChromeJA.none}</option><option value="1100">1100</option><option value="1300">1300</option>
 						<option value="1500">1500</option><option value="1700">1700</option><option value="1900">1900</option>
 					</select>
 				</label>
 
 				<form class="search" onSubmit={this.applyFilters}>
 					<p>
-						<input type="text" name="prefixsearch" class="textbox" placeholder="Username prefix" autocomplete="off" />
-						<button type="submit" class="button">Search</button>
+						<input
+							type="text" name="prefixsearch" class="textbox"
+							placeholder={BattleChromeJA.usernamePrefixPlaceholder} autocomplete="off"
+						/>
+						<button type="submit" class="button">{BattleChromeJA.search}</button>
 					</p>
 				</form>
 				<div class="list">{!room.battles ? (
-					<p>Loading...</p>
+					<p>{SharedChromeJA.loading}</p>
 				) : !room.battles.length ? (
-					<p>No battles are going on</p>
+					<p>{BattleChromeJA.noBattlesAreGoingOn}</p>
 				) : (<>
 					<p>{room.battles.length === 100 ?
-						`100+` : room.battles.length} {room.battles.length > 1 ? `battles` : `battle`}</p>
+						`100+` : room.battles.length} {room.battles.length > 1 ? BattleChromeJA.battlePlural : BattleChromeJA.battleSingular}</p>
 					{room.battles.map(battle => this.renderBattleLink(battle))}
 				</>
 				)}</div>
@@ -496,17 +502,26 @@ class BattlePanel extends PSRoomPanel<BattleRoom> {
 	}
 	notifyRequest() {
 		const room = this.props.room;
-		let oName = room.battle.farSide.name;
-		if (oName) oName = " against " + oName;
+		const opponentName = room.battle.farSide.name;
+		const opponentSuffix = opponentName ? `（${BattleChromeJA.opponentLabel}${opponentName}）` : '';
 		switch (room.request?.requestType) {
 		case 'move':
-			room.notify({ title: "Your move!", body: "Move in your battle" + oName });
+			room.notify({
+				title: BattleChromeJA.yourMoveNotifyTitle,
+				body: `${BattleChromeJA.moveNotifyBody}${opponentSuffix}`,
+			});
 			break;
 		case 'switch':
-			room.notify({ title: "Your switch!", body: "Switch in your battle" + oName });
+			room.notify({
+				title: BattleChromeJA.yourSwitchNotifyTitle,
+				body: `${BattleChromeJA.switchNotifyBody}${opponentSuffix}`,
+			});
 			break;
 		case 'team':
-			room.notify({ title: "Team preview!", body: "Choose your team order in your battle" + oName });
+			room.notify({
+				title: BattleChromeJA.teamPreviewNotifyTitle,
+				body: `${BattleChromeJA.teamPreviewNotifyBody}${opponentSuffix}`,
+			});
 			break;
 		}
 	}
@@ -528,38 +543,38 @@ class BattlePanel extends PSRoomPanel<BattleRoom> {
 			<p>
 				{atEnd ? (
 					<button class="button disabled" aria-disabled data-cmd="/play" style="min-width:4.5em">
-						<i class="fa fa-play" aria-hidden></i><br />Play
+						<i class="fa fa-play" aria-hidden></i><br />{BattleChromeJA.play}
 					</button>
 				) : room.battle.paused ? (
 					<button class="button" data-cmd="/play" style="min-width:4.5em">
-						<i class="fa fa-play" aria-hidden></i><br />Play
+						<i class="fa fa-play" aria-hidden></i><br />{BattleChromeJA.play}
 					</button>
 				) : (
 					<button class="button" data-cmd="/pause" style="min-width:4.5em">
-						<i class="fa fa-pause" aria-hidden></i><br />Pause
+						<i class="fa fa-pause" aria-hidden></i><br />{BattleChromeJA.pause}
 					</button>
 				)} {}
 				{!room.battle.hardcoreMode && <>
 					<button class={"button button-first" + (atStart ? " disabled" : "")} data-cmd="/ffto 0" style="margin-right:2px">
-						<i class="fa fa-undo" aria-hidden></i><br />First turn
+						<i class="fa fa-undo" aria-hidden></i><br />{BattleChromeJA.firstTurn}
 					</button>
 					<button class={"button button-first" + (atStart ? " disabled" : "")} data-cmd="/ffto -1">
-						<i class="fa fa-step-backward" aria-hidden></i><br />Prev turn
+						<i class="fa fa-step-backward" aria-hidden></i><br />{BattleChromeJA.prevTurn}
 					</button>
 					<button class={"button button-last" + (atEnd ? " disabled" : "")} data-cmd="/ffto +1" style="margin-right:2px">
-						<i class="fa fa-step-forward" aria-hidden></i><br />Skip turn
+						<i class="fa fa-step-forward" aria-hidden></i><br />{BattleChromeJA.skipTurn}
 					</button>
 					<button class={"button button-last" + (atEnd ? " disabled" : "")} data-cmd="/ffto end">
-						<i class="fa fa-fast-forward" aria-hidden></i><br />Skip to end
+						<i class="fa fa-fast-forward" aria-hidden></i><br />{BattleChromeJA.skipToEnd}
 					</button>
 				</>}
 			</p>
 			<p>
 				<button class="button" data-cmd="/switchsides">
-					<i class="fa fa-random" aria-hidden></i> Switch viewpoint
+					<i class="fa fa-random" aria-hidden></i> {BattleChromeJA.switchViewpoint}
 				</button> {}
 				{!room.battle.hardcoreMode && <button class="button" data-cmd="/ffto">
-					<i class="fa fa-random" aria-hidden></i> Go to turn
+					<i class="fa fa-random" aria-hidden></i> {BattleChromeJA.goToTurn}
 				</button>}
 			</p>
 		</div>;
@@ -592,7 +607,7 @@ class BattlePanel extends PSRoomPanel<BattleRoom> {
 				aria-disabled={props.disabled}
 				style={props.disabled === 'fade' ? 'opacity: 0.5' : ''} data-tooltip={props.tooltip}
 			>
-				(empty slot)
+				{BattleChromeJA.emptySlot}
 			</button>;
 		}
 
@@ -635,42 +650,42 @@ class BattlePanel extends PSRoomPanel<BattleRoom> {
 
 		return <div class="movemenu">
 			{maybeDisabled && <p><em class="movewarning">
-				You <strong>might</strong> have some moves disabled, so you won't be able to cancel an attack!
+				{BattleChromeJA.you}{BattleChromeJA.maybeDisabledWarning}<strong>{BattleChromeJA.might}</strong>。
 			</em></p>}
 			{maybeLocked && <p><em class="movewarning">
-				You <strong>might</strong> be locked into a move. {}
-				<button class="button" data-cmd="/choose testfight">Try Fight button</button> {}
-				(prevents switching if you're locked)
+				{BattleChromeJA.you}{BattleChromeJA.maybeLockedWarning}<strong>{BattleChromeJA.might}</strong>。 {}
+				<button class="button" data-cmd="/choose testfight">{BattleChromeJA.tryFightButton}</button> {}
+				{BattleChromeJA.lockedSwitchWarning}
 			</em></p>}
 			{!overlayVersion && this.renderMoveControls(moveRequest, choices)}
 			<div class="megaevo-box">
 				{canDynamax && <label class={`megaevo${choices.current.max ? ' cur' : ''}`}>
 					<input type="checkbox" name="max" checked={choices.current.max} onChange={this.toggleBoostedMove} /> {}
-					{moveRequest.gigantamax ? 'Gigantamax' : 'Dynamax'}
+					{moveRequest.gigantamax ? SharedChromeJA.gigantamax : BattleChromeJA.dynamax}
 				</label>}
 				{canMegaEvo && <label class={`megaevo${choices.current.mega ? ' cur' : ''}`}>
 					<input type="checkbox" name="mega" checked={choices.current.mega} onChange={this.toggleBoostedMove} /> {}
-					Mega Evolution
+					{BattleChromeJA.megaEvolution}
 				</label>}
 				{canMegaEvoX && <label class={`megaevo${choices.current.mega ? ' cur' : ''}`}>
 					<input type="checkbox" name="megax" checked={choices.current.megax} onChange={this.toggleBoostedMove} /> {}
-					Mega Evolution X
+					{BattleChromeJA.megaEvolutionX}
 				</label>}
 				{canMegaEvoY && <label class={`megaevo${choices.current.mega ? ' cur' : ''}`}>
 					<input type="checkbox" name="megay" checked={choices.current.megay} onChange={this.toggleBoostedMove} /> {}
-					Mega Evolution Y
+					{BattleChromeJA.megaEvolutionY}
 				</label>}
 				{canUltraBurst && <label class={`megaevo${choices.current.ultra ? ' cur' : ''}`}>
 					<input type="checkbox" name="ultra" checked={choices.current.ultra} onChange={this.toggleBoostedMove} /> {}
-					Ultra Burst
+					{BattleChromeJA.ultraBurst}
 				</label>}
 				{canZMove && <label class={`megaevo${choices.current.z ? ' cur' : ''}`}>
 					<input type="checkbox" name="z" checked={choices.current.z} onChange={this.toggleBoostedMove} /> {}
-					Z-Power
+					{BattleChromeJA.zPower}
 				</label>}
 				{canTerastallize && <label class={`megaevo${choices.current.tera ? ' cur' : ''}`}>
 					<input type="checkbox" name="tera" checked={choices.current.tera} onChange={this.toggleBoostedMove} /> {}
-					Tera {PSIcon({ type: canTerastallize, new: true, tera: true })}
+					{SharedChromeJA.tera} {PSIcon({ type: canTerastallize, new: true, tera: true })}
 				</label>}
 			</div>
 			{overlayVersion && this.renderMoveControls(moveRequest, choices)}
@@ -687,7 +702,7 @@ class BattlePanel extends PSRoomPanel<BattleRoom> {
 
 		if (choices.current.max || (active.maxMoves && !active.canDynamax)) {
 			if (!active.maxMoves) {
-				return <div class="message-error">Maxed with no max moves</div>;
+				return <div class="message-error">{BattleChromeJA.maxedWithNoMaxMoves}</div>;
 			}
 			const gmax = active.gigantamax && dex.moves.get(active.gigantamax);
 			return active.moves.map((moveData, i) => {
@@ -712,7 +727,7 @@ class BattlePanel extends PSRoomPanel<BattleRoom> {
 
 		if (choices.current.z) {
 			if (!active.zMoves) {
-				return <div class="message-error">No Z moves</div>;
+				return <div class="message-error">{BattleChromeJA.noZMoves}</div>;
 			}
 			return active.moves.map((moveData, i) => {
 				const zMoveData = active.zMoves![i];
@@ -808,13 +823,13 @@ class BattlePanel extends PSRoomPanel<BattleRoom> {
 
 		return <div class="switchmenu">
 			{maybeTrapped && <em class="movewarning">
-				You <strong>might</strong> be trapped, so you won't be able to cancel a switch!<br />
+				{BattleChromeJA.you}{BattleChromeJA.maybeTrappedWarning}<strong>{BattleChromeJA.might}</strong>。<br />
 			</em>}
 			{trapped && <em class="movewarning">
-				You're <strong>trapped</strong> and cannot switch!<br />
+				{BattleChromeJA.youAre}<strong>{BattleChromeJA.trapped}</strong>{BattleChromeJA.cannotSwitchWarning}<br />
 			</em>}
 			{isReviving && <em class="movewarning">
-				Choose a pokemon to revive!<br />
+				{BattleChromeJA.chooseRevive}<br />
 			</em>}
 			{request.side.pokemon.map((serverPokemon, i) => {
 				let cantSwitch = trapped || i < numActive || choices.alreadySwitchingIn.includes(i + 1) || serverPokemon.fainted;
@@ -851,7 +866,7 @@ class BattlePanel extends PSRoomPanel<BattleRoom> {
 		const team = this.team;
 		if (!team) return;
 		return <div class="switchcontrols">
-			{!overlayVersion && <h3 class="switchselect">Team</h3>}
+			{!overlayVersion && <h3 class="switchselect">{BattleChromeJA.teamTab}</h3>}
 			<div class="switchmenu">
 				{team.map((serverPokemon, i) => {
 					return this.renderPokemonButton({
@@ -885,7 +900,9 @@ class BattlePanel extends PSRoomPanel<BattleRoom> {
 		}
 
 		let buf: preact.ComponentChild[] = [
-			<button data-cmd="/cancel" class="button"><i class="fa fa-chevron-left" aria-hidden></i> Back</button>, ' ',
+			<button data-cmd="/cancel" class="button">
+				<i class="fa fa-chevron-left" aria-hidden></i> {SharedChromeJA.back}
+			</button>, ' ',
 		];
 		if (choices.isDone() && (choices.noCancel || this.props.room.battle.hardcoreMode)) {
 			buf = ['Waiting for opponent...', <br />];
@@ -911,10 +928,10 @@ class BattlePanel extends PSRoomPanel<BattleRoom> {
 			const active = request.requestType === 'move' ? request.active[i] : null;
 			if (choice.choiceType === 'move') {
 				buf.push(`${pokemon.name} will `);
-				if (choice.mega) buf.push(<strong>Mega</strong>, ` Evolve and `);
-				if (choice.megax) buf.push(<strong>Mega</strong>, ` Evolve (X) and `);
-				if (choice.megay) buf.push(<strong>Mega</strong>, ` Evolve (Y) and `);
-				if (choice.ultra) buf.push(<strong>Ultra</strong>, ` Burst and `);
+				if (choice.mega) buf.push(<strong>{BattleChromeJA.mega}</strong>, ` Evolve and `);
+				if (choice.megax) buf.push(<strong>{BattleChromeJA.mega}</strong>, ` Evolve (X) and `);
+				if (choice.megay) buf.push(<strong>{BattleChromeJA.mega}</strong>, ` Evolve (Y) and `);
+				if (choice.ultra) buf.push(<strong>{BattleChromeJA.ultra}</strong>, ` Burst and `);
 				if (choice.tera) buf.push(`Terastallize (`, <strong>{active?.canTerastallize || '???'}</strong>, `) and `);
 				if (choice.max && active?.canDynamax) buf.push(active?.gigantamax ? `Gigantamax and ` : `Dynamax and `);
 				buf.push(`use `, <strong>{choices.currentMove(choice, i)?.name}</strong>);
@@ -939,7 +956,7 @@ class BattlePanel extends PSRoomPanel<BattleRoom> {
 				const target = request.side.pokemon[choice.targetPokemon - 1];
 				buf.push(`${pokemon.name} will switch to `, <strong>{target.name}</strong>, `.`);
 			} else if (choice.choiceType === 'shift') {
-				buf.push(`${pokemon.name} will `, <strong>shift</strong>, ` to the center.`);
+				buf.push(`${pokemon.name} will `, <strong>{BattleChromeJA.shiftAction}</strong>, ` to the center.`);
 			} else if (choice.choiceType === 'team') {
 				const target = request.side.pokemon[choice.targetPokemon - 1];
 				buf.push(`You picked `, <strong>{target.name}</strong>, `.`);
@@ -957,13 +974,19 @@ class BattlePanel extends PSRoomPanel<BattleRoom> {
 			const canSkip = !room.battle.hardcoreMode;
 			return <>
 				{canSkip && <div class="overlay-controls-skip">
-					<button class="button" data-cmd="/ffto end"><i class="fa fa-fast-forward" aria-hidden></i><br />Skip</button>
+					<button class="button" data-cmd="/ffto end">
+						<i class="fa fa-fast-forward" aria-hidden></i><br />
+						{BattleChromeJA.skip}
+					</button>
 				</div>}
 			</>;
 		}
 		return <div class="inline-controls">
 			{!room.battle.hardcoreMode && <div class="whatdo" style="padding-bottom:0">
-				<button class="button" data-cmd="/ffto end"><i class="fa fa-fast-forward" aria-hidden></i><br />Skip animation</button>
+				<button class="button" data-cmd="/ffto end">
+					<i class="fa fa-fast-forward" aria-hidden></i><br />
+					{BattleChromeJA.skipAnimation}
+				</button>
 			</div>}
 			{this.renderTeamList()}
 		</div>;
@@ -978,13 +1001,17 @@ class BattlePanel extends PSRoomPanel<BattleRoom> {
 			if (overlayVersion) {
 				return <>
 					<div class="overlay-controls-list">
-						<button class="button move-button cur"><strong>Battle</strong></button> {}
-						<button class="button switch-button disabled"><strong>Switch</strong></button>
+						<button class="button move-button cur">
+							<strong>{BattleChromeJA.battleTab}</strong>
+						</button> {}
+						<button class="button switch-button disabled">
+							<strong>{BattleChromeJA.switchTab}</strong>
+						</button>
 					</div>
 					<div class="targetcontrols">
 						<p class="overlay-message">
 							{this.renderOldChoices(request, choices, true)}
-							{pokemon.name} should use <strong>{moveName}</strong> at where?
+							{pokemon.name}{BattleChromeJA.shouldUse}<strong>{moveName}</strong>{BattleChromeJA.atWhere}
 						</p>
 						<div class="switchmenu">
 							{this.renderMoveTargetControls(request, choices)}
@@ -995,7 +1022,7 @@ class BattlePanel extends PSRoomPanel<BattleRoom> {
 			return <div class="inline-controls">
 				<div class="whatdo">
 					{this.renderOldChoices(request, choices)}
-					{pokemon.name} should use <strong>{moveName}</strong> at where? {}
+					{pokemon.name}{BattleChromeJA.shouldUse}<strong>{moveName}</strong>{BattleChromeJA.atWhere} {}
 				</div>
 				<div class="switchcontrols">
 					<div class="switchmenu">
@@ -1010,19 +1037,23 @@ class BattlePanel extends PSRoomPanel<BattleRoom> {
 		if (overlayVersion) {
 			return <>
 				<div class="overlay-controls-list">
-					<button class={this.overlayControlClass('move')} data-cmd="/movemenu"><strong>Battle</strong></button> {}
-					<button class={this.overlayControlClass('switch')} data-cmd="/switchmenu"><strong>Switch</strong></button>
+					<button class={this.overlayControlClass('move')} data-cmd="/movemenu">
+						<strong>{BattleChromeJA.battleTab}</strong>
+					</button> {}
+					<button class={this.overlayControlClass('switch')} data-cmd="/switchmenu">
+						<strong>{BattleChromeJA.switchTab}</strong>
+					</button>
 				</div>
 				{!room.overlayActive && <div class="whatdo">
 					{this.renderOldChoices(request, choices, true)}
-					What will <strong>{pokemon.name}</strong> do?
+					{BattleChromeJA.whatWill}<strong>{pokemon.name}</strong>{BattleChromeJA.do}
 				</div>}
 				{room.overlayActive === 'move' && <div class="movecontrols">
 					{this.renderMoveMenu(choices, true)}
 				</div>}
 				{room.overlayActive === 'switch' && <div class="switchcontrols">
 					{canShift && (
-						<button data-cmd="/shift">Move to center</button>
+						<button data-cmd="/shift">{BattleChromeJA.moveToCenter}</button>
 					)}
 					{this.renderSwitchMenu(request, choices)}
 				</div>}
@@ -1031,18 +1062,18 @@ class BattlePanel extends PSRoomPanel<BattleRoom> {
 		return <div class="inline-controls">
 			<div class="whatdo">
 				{this.renderOldChoices(request, choices)}
-				What will <strong>{pokemon.name}</strong> do?
+				{BattleChromeJA.whatWill}<strong>{pokemon.name}</strong>{BattleChromeJA.do}
 			</div>
 			<div class="movecontrols">
-				<h3 class="moveselect">Battle</h3>
+				<h3 class="moveselect">{BattleChromeJA.battleTab}</h3>
 				{this.renderMoveMenu(choices)}
 			</div>
 			<div class="switchcontrols">
 				{canShift && [
-					<h3 class="shiftselect">Shift</h3>,
-					<button data-cmd="/shift">Move to center</button>,
+					<h3 class="shiftselect">{BattleChromeJA.shiftHeading}</h3>,
+					<button data-cmd="/shift">{BattleChromeJA.moveToCenter}</button>,
 				]}
-				<h3 class="switchselect">Switch</h3>
+				<h3 class="switchselect">{BattleChromeJA.switchTab}</h3>
 				{this.renderSwitchMenu(request, choices)}
 			</div>
 		</div>;
@@ -1052,12 +1083,12 @@ class BattlePanel extends PSRoomPanel<BattleRoom> {
 		if (overlayVersion) {
 			return <>
 				<div class="overlay-controls-list">
-					<button class="button switch-button cur"><strong>Switch</strong></button>
+					<button class="button switch-button cur"><strong>{BattleChromeJA.switchTab}</strong></button>
 				</div>
 				<div class="switchcontrols">
 					<p class="overlay-message">
 						{this.renderOldChoices(request, choices, true)}
-						Who will replace <strong>{pokemon.name}</strong>?
+						<strong>{pokemon.name}</strong>{BattleChromeJA.whoWillReplace}
 					</p>
 					{this.renderSwitchMenu(request, choices, true)}
 				</div>
@@ -1066,37 +1097,41 @@ class BattlePanel extends PSRoomPanel<BattleRoom> {
 		return <div class="inline-controls">
 			<div class="whatdo">
 				{this.renderOldChoices(request, choices)}
-				Who will replace <strong>{pokemon.name}</strong>?
+				<strong>{pokemon.name}</strong>{BattleChromeJA.whoWillReplace}
 			</div>
 			<div class="switchcontrols">
-				<h3 class="switchselect">Switch</h3>
+				<h3 class="switchselect">{BattleChromeJA.switchTab}</h3>
 				{this.renderSwitchMenu(request, choices, true)}
 			</div>
 		</div>;
 	}
 	renderPlayerTeamPreviewControls(request: BattleTeamRequest, choices: BattleChoiceBuilder, overlayVersion = false) {
 		const prompt = choices.alreadySwitchingIn.length > 0 ? (
-			[<button data-cmd="/cancel" class="button"><i class="fa fa-chevron-left" aria-hidden></i> Back</button>,
-				" What about the rest of your team? "]
+			[<button data-cmd="/cancel" class="button">
+				<i class="fa fa-chevron-left" aria-hidden></i> {SharedChromeJA.back}
+			</button>,
+			" What about the rest of your team? "]
 		) : (
 			"How will you start the battle? "
 		);
 		const chooseLabel = choices.alreadySwitchingIn.length <= 0 ?
-			`lead` : `slot ${choices.alreadySwitchingIn.length + 1}`;
+			BattleChromeJA.leadSlot : BattleChromeJA.numberedSlot.replace(
+				/\$\{…\}/, String(choices.alreadySwitchingIn.length + 1)
+			);
 		if (overlayVersion) {
 			return <>
 				<div class="overlay-controls-list">
-					<button class="button switch-button cur"><strong>Team</strong></button>
+					<button class="button switch-button cur"><strong>{BattleChromeJA.teamTab}</strong></button>
 				</div>
 				<div class="teamcontrols">
 					<p class="overlay-message">{prompt}</p>
-					<h3 class="switchselect">Choose {chooseLabel}</h3>
+					<h3 class="switchselect">{chooseLabel}{BattleChromeJA.choose}</h3>
 					<div class="switchmenu">
 						{this.renderTeamPreviewChooser(request, choices)}
 						<div style="clear:left"></div>
 					</div>
 					{choices.alreadySwitchingIn.length > 0 && <>
-						<h3 class="switchselect">Team so far</h3>
+						<h3 class="switchselect">{BattleChromeJA.teamSoFar}</h3>
 						<div class="switchmenu">
 							{this.renderChosenTeam(request, choices)}
 						</div>
@@ -1110,7 +1145,7 @@ class BattlePanel extends PSRoomPanel<BattleRoom> {
 			</div>
 			<div class="switchcontrols">
 				<h3 class="switchselect">
-					Choose {chooseLabel}
+					{chooseLabel}{BattleChromeJA.choose}
 				</h3>
 				<div class="switchmenu">
 					{this.renderTeamPreviewChooser(request, choices)}
@@ -1118,7 +1153,7 @@ class BattlePanel extends PSRoomPanel<BattleRoom> {
 				</div>
 			</div>
 			<div class="switchcontrols">
-				{choices.alreadySwitchingIn.length > 0 && <h3 class="switchselect">Team so far</h3>}
+				{choices.alreadySwitchingIn.length > 0 && <h3 class="switchselect">{BattleChromeJA.teamSoFar}</h3>}
 				<div class="switchmenu">
 					{this.renderChosenTeam(request, choices)}
 				</div>
@@ -1142,7 +1177,9 @@ class BattlePanel extends PSRoomPanel<BattleRoom> {
 			if (overlayVersion) {
 				return <>
 					<div class="overlay-controls-list">
-						<button class={this.overlayControlClass('switch')} data-cmd="/switchmenu"><strong>Team</strong></button>
+						<button class={this.overlayControlClass('switch')} data-cmd="/switchmenu">
+							<strong>{BattleChromeJA.teamTab}</strong>
+						</button>
 					</div>
 					{!room.overlayActive && <div class="whatdo">
 						{this.renderOldChoices(request, choices, true)}
@@ -1156,7 +1193,7 @@ class BattlePanel extends PSRoomPanel<BattleRoom> {
 				</div>
 				<div class="pad">
 					{choices.noCancel || room.battle.hardcoreMode ?
-						null : <button data-cmd="/cancel" class="button">Cancel</button>}
+						null : <button data-cmd="/cancel" class="button">{SharedChromeJA.cancel}</button>}
 				</div>
 				{this.renderTeamList()}
 			</div>;
@@ -1187,40 +1224,42 @@ class BattlePanel extends PSRoomPanel<BattleRoom> {
 						href={`//${Config.routes.replays}/download`}
 						class="button replayDownloadButton"
 					>
-						<i class="fa fa-download" aria-hidden></i> Download replay</a>
+						<i class="fa fa-download" aria-hidden></i> {BattleChromeJA.downloadReplay}</a>
 					<br />
 					<br />
 					<button class="button" data-cmd="/savereplay">
-						<i class="fa fa-upload" aria-hidden></i> Upload and share replay
+						<i class="fa fa-upload" aria-hidden></i> {BattleChromeJA.uploadAndShareReplay}
 					</button>
 				</span>
 
 				<button class="button" data-cmd="/play" style="min-width:4.5em">
-					<i class="fa fa-undo" aria-hidden></i><br />Replay
+					<i class="fa fa-undo" aria-hidden></i><br />{BattleChromeJA.replay}
 				</button> {}
 				{isNotTiny && !room.battle.hardcoreMode && <>
 					<button class="button button-first" data-cmd="/ffto 0" style="margin-right:2px">
-						<i class="fa fa-undo" aria-hidden></i><br />First turn
+						<i class="fa fa-undo" aria-hidden></i><br />{BattleChromeJA.firstTurn}
 					</button>
 					<button class="button button-first" data-cmd="/ffto -1">
-						<i class="fa fa-step-backward" aria-hidden></i><br />Prev turn
+						<i class="fa fa-step-backward" aria-hidden></i><br />{BattleChromeJA.prevTurn}
 					</button>
 				</>}
 			</p>
 			{room.side ? (
 				<p>
 					<button class="button" data-cmd="/close">
-						<strong>Main menu</strong><br /><small>(closes this battle)</small>
+						<strong>{BattleChromeJA.mainMenu}</strong><br /><small>{BattleChromeJA.closesThisBattle}</small>
 					</button> {}
 					<button class="button" data-cmd={`/closeand /challenge ${room.battle.farSide.id},${room.battle.tier}`}>
-						<strong>Rematch</strong><br /><small>(closes this battle)</small>
+						<strong>{BattleChromeJA.rematch}</strong><br /><small>{BattleChromeJA.closesThisBattle}</small>
 					</button>
 				</p>
 			) : (
 				<p>
-					<button class="button" data-cmd="/switchsides"><i class="fa fa-random" aria-hidden></i> Switch viewpoint</button> {}
+					<button class="button" data-cmd="/switchsides">
+						<i class="fa fa-random" aria-hidden></i> {BattleChromeJA.switchViewpoint}
+					</button> {}
 					{!room.battle.hardcoreMode && <button class="button" data-cmd="/ffto">
-						<i class="fa fa-random" aria-hidden></i> Go to turn
+						<i class="fa fa-random" aria-hidden></i> {BattleChromeJA.goToTurn}
 					</button>}
 				</p>
 			)}
