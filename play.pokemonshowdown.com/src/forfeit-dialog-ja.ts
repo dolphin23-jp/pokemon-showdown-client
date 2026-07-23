@@ -1,7 +1,8 @@
-import { ForfeitDialogJA } from "./client-ui-ja-strings";
+import { ForfeitDialogJA, SharedChromeJA } from "./client-ui-ja-strings";
 
 const FORFEIT_AND_CLOSE_CMD = '/closeand /inopener /closeand /forfeit';
 const JUST_FORFEIT_CMD = '/closeand /inopener /forfeit';
+const CANCEL_CMD = '/close';
 
 function setButtonLabel(button: HTMLButtonElement, label: string) {
 	const strong = button.querySelector('strong');
@@ -35,6 +36,9 @@ function localizeForfeitDialog() {
 	if (prompt) prompt.textContent = ForfeitDialogJA.confirm;
 	setButtonLabel(forfeitAndClose, ForfeitDialogJA.forfeitAndClose);
 	setButtonLabel(justForfeit, ForfeitDialogJA.justForfeit);
+
+	const cancel = container.querySelector<HTMLButtonElement>(`button[data-cmd="${CANCEL_CMD}"]`);
+	if (cancel) setButtonLabel(cancel, SharedChromeJA.cancel);
 }
 
 localizeForfeitDialog();
