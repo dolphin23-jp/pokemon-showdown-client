@@ -45,18 +45,25 @@ jobs:
       shell: bash
       run: |
         set +e
-        node build-tools/apply-t3-07-residual-labels.js > t3-07-residual.log 2>&1
+        : > t3-07-residual.log
+        echo '== apply residual labels ==' >> t3-07-residual.log
+        node build-tools/apply-t3-07-residual-labels.js >> t3-07-residual.log 2>&1
         status=$?
+        echo "apply_status=$status" >> t3-07-residual.log
+
         if [ "$status" -eq 0 ]; then
-          python3 - <<'PY'
-          from pathlib import Path
-          path = Path('play.pokemonshowdown.com/src/panel-teambuilder.tsx')
-          source = path.read_text()
-          directive = '/* eslint-disable @stylistic/max-len */\n'
-          if not source.startswith(directive):
-              path.write_text(directive + source)
-          PY
+          echo '== add used max-len directive ==' >> t3-07-residual.log
+          target='play.pokemonshowdown.com/src/panel-teambuilder.tsx'
+          directive='/* eslint-disable @stylistic/max-len */'
+          if [ "$(head -n 1 "$target")" != "$directive" ]; then
+            temporary="$(mktemp)"
+            printf '%s\n' "$directive" > "$temporary"
+            cat "$target" >> "$temporary"
+            mv "$temporary" "$target"
+          fi
           rm -f build-tools/apply-t3-07-residual-labels.js
+
+          echo '== eslint fix ==' >> t3-07-residual.log
           npx eslint --fix \
             play.pokemonshowdown.com/src/battle-team-editor.tsx \
             play.pokemonshowdown.com/src/panel-teambuilder.tsx \
@@ -65,25 +72,16 @@ jobs:
             test/client-ui-ja-strings.js \
             test/teambuilder-ja-chrome.js >> t3-07-residual.log 2>&1
           status=$?
+          echo "eslint_status=$status" >> t3-07-residual.log
         fi
+
         if [ "$status" -eq 0 ]; then
+          echo '== npm test ==' >> t3-07-residual.log
           npm test >> t3-07-residual.log 2>&1
           status=$?
+          echo "test_status=$status" >> t3-07-residual.log
         fi
-        git config user.name "github-actions[bot]"
-        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        if [ "$status" -eq 0 ]; then
-          rm -f t3-07-residual-failure*.log t3-07-failure.log
-          git add -A
-          git commit -m "Complete Teambuilder label coverage"
-          git push origin HEAD:agent/phase3-t3-07-teambuilder-labels
-        else
-          failure_file="t3-07-residual-failure-${GITHUB_RUN_ID}.log"
-          tail -n 300 t3-07-residual.log > "$failure_file"
-          git add -f "$failure_file"
-          git commit -m "Record residual T3-07 failure ${GITHUB_RUN_ID}" || true
-          git push origin HEAD:agent/phase3-t3-07-teambuilder-labels || true
-        fi
+
         echo "status=$status" >> "$GITHUB_OUTPUT"
         exit 0
     - name: Upload T3-07 diagnostics
@@ -91,11 +89,19 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: t3-07-diagnostics-${{ github.run_id }}
-        path: |
-          t3-07-residual.log
-          t3-07-residual-failure-*.log
-        if-no-files-found: warn
+        path: t3-07-residual.log
+        if-no-files-found: error
         retention-days: 1
+    - name: Commit verified implementation
+      if: steps.apply.outputs.status == '0'
+      shell: bash
+      run: |
+        rm -f t3-07-residual.log t3-07-residual-failure*.log t3-07-failure.log
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add -A
+        git commit -m "Complete Teambuilder label coverage"
+        git push origin HEAD:agent/phase3-t3-07-teambuilder-labels
     - name: Fail if validation failed
       if: steps.apply.outputs.status != '0'
       run: exit 1
