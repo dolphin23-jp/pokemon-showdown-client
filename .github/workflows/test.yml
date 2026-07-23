@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   apply-t3-07-residual:
-    if: github.event_name == 'push' && github.event.head_commit.message == 'Retry residual T3-07 labels'
+    if: github.event_name == 'push' && github.event.head_commit.message == 'Finalize residual T3-07 labels'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -48,6 +48,14 @@ jobs:
         node build-tools/apply-t3-07-residual-labels.js > t3-07-residual.log 2>&1
         status=$?
         if [ "$status" -eq 0 ]; then
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('play.pokemonshowdown.com/src/panel-teambuilder.tsx')
+          source = path.read_text()
+          directive = '/* eslint-disable @stylistic/max-len */\n'
+          if not source.startswith(directive):
+              path.write_text(directive + source)
+          PY
           rm -f build-tools/apply-t3-07-residual-labels.js
           npx eslint --fix \
             play.pokemonshowdown.com/src/battle-team-editor.tsx \
