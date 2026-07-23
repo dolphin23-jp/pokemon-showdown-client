@@ -9,86 +9,22 @@ on:
   pull_request:
     branches: [ master ]
 
-permissions:
-  contents: write
-
 jobs:
-  apply-t3-05-timer:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-    - uses: actions/checkout@v6
-      with:
-        ref: agent/phase3-t3-05-timer-followup
-        fetch-depth: 0
-    - name: Use Node.js 22
-      uses: actions/setup-node@v6
-      with:
-        node-version: 22.x
-        cache: npm
-    - run: npm ci
-    - name: Apply and validate timer localization
-      id: apply
-      shell: bash
-      run: |
-        set +e
-        : > t3-05-timer.log
-        echo '== apply ==' >> t3-05-timer.log
-        node build-tools/apply-t3-05-timer-followup.js >> t3-05-timer.log 2>&1
-        status=$?
-        echo "apply_status=$status" >> t3-05-timer.log
-        if [ "$status" -eq 0 ]; then
-          rm -f build-tools/apply-t3-05-timer-followup.js t3-05-timer-trigger*.txt
-          echo '== eslint ==' >> t3-05-timer.log
-          npx eslint --fix \
-            play.pokemonshowdown.com/src/client-ui-ja-strings.ts \
-            play.pokemonshowdown.com/src/panel-battle.tsx \
-            test/client-ui-ja-strings.js >> t3-05-timer.log 2>&1
-          status=$?
-          echo "eslint_status=$status" >> t3-05-timer.log
-        fi
-        if [ "$status" -eq 0 ]; then
-          echo '== npm test ==' >> t3-05-timer.log
-          npm test >> t3-05-timer.log 2>&1
-          status=$?
-          echo "test_status=$status" >> t3-05-timer.log
-        fi
-        echo "status=$status" >> "$GITHUB_OUTPUT"
-        exit 0
-    - name: Upload timer diagnostics
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: t3-05-timer-${{ github.run_id }}
-        path: t3-05-timer.log
-        if-no-files-found: error
-        retention-days: 1
-    - name: Commit verified implementation
-      if: steps.apply.outputs.status == '0'
-      run: |
-        rm -f t3-05-timer.log
-        git config user.name "github-actions[bot]"
-        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git add -A
-        git commit -m "Localize the battle timer label"
-        git push origin HEAD:agent/phase3-t3-05-timer-followup
-    - name: Fail if validation failed
-      if: steps.apply.outputs.status != '0'
-      run: exit 1
-
   build:
+
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
         node-version: [22.x]
+
     steps:
     - uses: actions/checkout@v6
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v6
       with:
         node-version: ${{ matrix.node-version }}
-        cache: npm
+        cache: 'npm'
     - run: npm ci
     - run: npm run test
       env:
