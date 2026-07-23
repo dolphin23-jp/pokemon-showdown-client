@@ -1,338 +1,42 @@
 name: Apply Phase 3 T3-05 battle chrome
 
 on:
-  push:
+  pull_request:
     branches:
-      - agent/phase3-t3-05-battle-chrome
+      - master
 
 permissions:
   contents: write
 
 jobs:
   apply:
+    if: github.head_ref == 'agent/phase3-t3-05-battle-chrome'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ github.head_ref }}
+          fetch-depth: 2
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - name: Apply battle chrome constants
+      - name: Recover and run verified application script
         shell: bash
         run: |
+          git show HEAD^:.github/workflows/t3-05-apply.yml > /tmp/t3-05-original.yml
           python3 - <<'PY'
           from pathlib import Path
-          import re
 
-          def replace_exact(text, old, new, expected=1):
-              count = text.count(old)
-              if count != expected:
-                  raise SystemExit(f"replacement count {count} != {expected}: {old[:120]!r}")
-              return text.replace(old, new)
-
-          strings_path = Path('play.pokemonshowdown.com/src/client-ui-ja-strings.ts')
-          strings = strings_path.read_text()
-          strings = replace_exact(strings,
-              "\tyourMoveNotifyTitle: ['Your move!', '技を選んでください'],\n\tyourSwitchNotifyTitle: ['Your switch!', '交代してください'],\n\tteamPreviewNotifyTitle: ['Team preview!', '選出してください'],",
-              "\tyourMoveNotifyTitle: ['Your move!', '技を選んでください'],\n\tmoveNotifyBody: ['Move in your battle', '対戦で技を選択してください'],\n\tyourSwitchNotifyTitle: ['Your switch!', '交代してください'],\n\tswitchNotifyBody: ['Switch in your battle', '交代するポケモンを選択してください'],\n\tteamPreviewNotifyTitle: ['Team preview!', '選出してください'],\n\tteamPreviewNotifyBody: ['Choose your team order in your battle', '対戦開始時の選出順を決めてください'],\n\topponentLabel: ['Opponent:', '対戦相手：'],")
-          strings = replace_exact(strings,
-              "\tmaybeDisabledWarning: ['have some moves disabled, so you won\\'t be able to cancel an attack!', '一部の技が使用不能で、攻撃をキャンセルできないことがあります！'],",
-              "\tmaybeDisabledWarning: ['have some moves disabled, so you won\\'t be able to cancel an attack!', '一部の技を使えず、攻撃をキャンセルできない'],")
-          strings = replace_exact(strings,
-              "\tyou: ['You', 'あなたは'],",
-              "\tyou: ['You', 'あなたのポケモンは'],")
-          strings = replace_exact(strings,
-              "\tmaybeTrappedWarning: ['be trapped, so you won\\'t be able to cancel a switch!', '交代できない状態で、交代をキャンセルできないことがあります！'],",
-              "\tmaybeTrappedWarning: ['be trapped, so you won\\'t be able to cancel a switch!', '交代できず、交代をキャンセルできない'],")
-          strings = replace_exact(strings,
-              "\tcannotSwitchWarning: ['and cannot switch!', 'ため交代できません！'],\n\ttrapped: ['trapped', '交代できない状態です'],\n\tyouAre: ['You\\'re', 'あなたは'],",
-              "\tcannotSwitchWarning: ['and cannot switch!', 'ため、交代できません！'],\n\ttrapped: ['trapped', '交代できない状態の'],\n\tyouAre: ['You\\'re', 'あなたのポケモンは'],")
-          strings = replace_exact(strings,
-              "\twhoWillReplace: ['Who will replace', '交代するポケモン：'],\n\tchoose: ['Choose', '選択'],",
-              "\twhoWillReplace: ['Who will replace', 'の代わりに出すポケモンは？'],\n\tchoose: ['Choose', 'を選択'],\n\tleadSlot: ['lead', '先発'],\n\t// eslint-disable-next-line no-template-curly-in-string\n\tnumberedSlot: ['slot ${…}', '第${…}匹'],")
-          strings_path.write_text(strings)
-
-          panel_path = Path('play.pokemonshowdown.com/src/panel-battle.tsx')
-          panel = panel_path.read_text()
-          original_panel = panel
-          panel = replace_exact(panel,
-              'import { Net } from "./client-connection";\n',
-              'import { Net } from "./client-connection";\nimport { BattleChromeJA, SharedChromeJA } from "./client-ui-ja-strings";\n')
-          panel = replace_exact(panel,
-              '<em class="p1">{battle.p1}</em> <small class="vs">vs.</small> <em class="p2">{battle.p2}</em>',
-              '<em class="p1">{battle.p1}</em> <small class="vs">{BattleChromeJA.versus}</small> <em class="p2">{battle.p2}</em>')
-          panel = replace_exact(panel, '<i class="fa fa-times" aria-hidden></i> Close', '<i class="fa fa-times" aria-hidden></i> {SharedChromeJA.close}')
-          panel = replace_exact(panel, '<i class="fa fa-refresh" aria-hidden></i> Refresh', '<i class="fa fa-refresh" aria-hidden></i> {BattleChromeJA.refresh}')
-          panel = replace_exact(panel,
-              'title="Meloetta is PS\'s mascot! The Pirouette forme is Fighting-type, and represents our battles."',
-              'title={BattleChromeJA.meloettaMascotTitle}')
-          panel = replace_exact(panel,
-              '<label class="label">Format:</label><FormatDropdown onChange={this.changeFormat} placeholder="(All formats)" />',
-              '<label class="label">{SharedChromeJA.formatLabel}</label><FormatDropdown onChange={this.changeFormat} placeholder={BattleChromeJA.allFormatsPlaceholder} />')
-          panel = replace_exact(panel,
-              'Minimum Elo: <select name="elofilter" class="select" onChange={this.applyFilters}>',
-              '{BattleChromeJA.minimumEloLabel} <select name="elofilter" class="select" onChange={this.applyFilters}>')
-          panel = replace_exact(panel, '<option value="none">None</option>', '<option value="none">{BattleChromeJA.none}</option>')
-          panel = replace_exact(panel,
-              'placeholder="Username prefix" autocomplete="off"',
-              'placeholder={BattleChromeJA.usernamePrefixPlaceholder} autocomplete="off"')
-          panel = replace_exact(panel, '<button type="submit" class="button">Search</button>', '<button type="submit" class="button">{BattleChromeJA.search}</button>')
-          panel = replace_exact(panel, '<p>Loading...</p>', '<p>{SharedChromeJA.loading}</p>')
-          panel = replace_exact(panel, '<p>No battles are going on</p>', '<p>{BattleChromeJA.noBattlesAreGoingOn}</p>')
-          panel = replace_exact(panel,
-              '{room.battles.length > 1 ? `battles` : `battle`}',
-              '{room.battles.length > 1 ? BattleChromeJA.battlePlural : BattleChromeJA.battleSingular}')
-          panel = replace_exact(panel,
-              '''\t\tlet oName = room.battle.farSide.name;
-\t\tif (oName) oName = " against " + oName;
-\t\tswitch (room.request?.requestType) {
-\t\tcase 'move':
-\t\t\troom.notify({ title: "Your move!", body: "Move in your battle" + oName });
-\t\t\tbreak;
-\t\tcase 'switch':
-\t\t\troom.notify({ title: "Your switch!", body: "Switch in your battle" + oName });
-\t\t\tbreak;
-\t\tcase 'team':
-\t\t\troom.notify({ title: "Team preview!", body: "Choose your team order in your battle" + oName });
-\t\t\tbreak;
-\t\t}''',
-              '''\t\tconst opponentName = room.battle.farSide.name;
-\t\tconst opponentSuffix = opponentName ? `（${BattleChromeJA.opponentLabel}${opponentName}）` : '';
-\t\tswitch (room.request?.requestType) {
-\t\tcase 'move':
-\t\t\troom.notify({
-\t\t\t\ttitle: BattleChromeJA.yourMoveNotifyTitle,
-\t\t\t\tbody: `${BattleChromeJA.moveNotifyBody}${opponentSuffix}`,
-\t\t\t});
-\t\t\tbreak;
-\t\tcase 'switch':
-\t\t\troom.notify({
-\t\t\t\ttitle: BattleChromeJA.yourSwitchNotifyTitle,
-\t\t\t\tbody: `${BattleChromeJA.switchNotifyBody}${opponentSuffix}`,
-\t\t\t});
-\t\t\tbreak;
-\t\tcase 'team':
-\t\t\troom.notify({
-\t\t\t\ttitle: BattleChromeJA.teamPreviewNotifyTitle,
-\t\t\t\tbody: `${BattleChromeJA.teamPreviewNotifyBody}${opponentSuffix}`,
-\t\t\t});
-\t\t\tbreak;
-\t\t}''')
-
-          replacements = [
-              ('<i class="fa fa-play" aria-hidden></i><br />Play', '<i class="fa fa-play" aria-hidden></i><br />{BattleChromeJA.play}', 2),
-              ('<i class="fa fa-pause" aria-hidden></i><br />Pause', '<i class="fa fa-pause" aria-hidden></i><br />{BattleChromeJA.pause}', 1),
-              ('<i class="fa fa-undo" aria-hidden></i><br />First turn', '<i class="fa fa-undo" aria-hidden></i><br />{BattleChromeJA.firstTurn}', 2),
-              ('<i class="fa fa-step-backward" aria-hidden></i><br />Prev turn', '<i class="fa fa-step-backward" aria-hidden></i><br />{BattleChromeJA.prevTurn}', 2),
-              ('<i class="fa fa-step-forward" aria-hidden></i><br />Skip turn', '<i class="fa fa-step-forward" aria-hidden></i><br />{BattleChromeJA.skipTurn}', 1),
-              ('<i class="fa fa-fast-forward" aria-hidden></i><br />Skip to end', '<i class="fa fa-fast-forward" aria-hidden></i><br />{BattleChromeJA.skipToEnd}', 1),
-              ('<i class="fa fa-random" aria-hidden></i> Switch viewpoint', '<i class="fa fa-random" aria-hidden></i> {BattleChromeJA.switchViewpoint}', 2),
-              ('<i class="fa fa-random" aria-hidden></i> Go to turn', '<i class="fa fa-random" aria-hidden></i> {BattleChromeJA.goToTurn}', 2),
-              ('\t\t\t\t(empty slot)\n', '\t\t\t\t{BattleChromeJA.emptySlot}\n', 1),
-              ('\t\t\t\tMega Evolution\n', '\t\t\t\t{BattleChromeJA.megaEvolution}\n', 1),
-              ('\t\t\t\tMega Evolution X\n', '\t\t\t\t{BattleChromeJA.megaEvolutionX}\n', 1),
-              ('\t\t\t\tMega Evolution Y\n', '\t\t\t\t{BattleChromeJA.megaEvolutionY}\n', 1),
-              ('\t\t\t\tUltra Burst\n', '\t\t\t\t{BattleChromeJA.ultraBurst}\n', 1),
-              ('\t\t\t\tZ-Power\n', '\t\t\t\t{BattleChromeJA.zPower}\n', 1),
-              ('\t\t\t\t\tTera {PSIcon', '\t\t\t\t\t{SharedChromeJA.tera} {PSIcon', 1),
-              ('<div class="message-error">Maxed with no max moves</div>', '<div class="message-error">{BattleChromeJA.maxedWithNoMaxMoves}</div>', 1),
-              ('<div class="message-error">No Z moves</div>', '<div class="message-error">{BattleChromeJA.noZMoves}</div>', 1),
-              ('<h3 class="switchselect">Team</h3>', '<h3 class="switchselect">{BattleChromeJA.teamTab}</h3>', 1),
-              ('<i class="fa fa-chevron-left" aria-hidden></i> Back</button>', '<i class="fa fa-chevron-left" aria-hidden></i> {SharedChromeJA.back}</button>', 2),
-              ('<strong>Mega</strong>', '<strong>{BattleChromeJA.mega}</strong>', 3),
-              ('<strong>Ultra</strong>', '<strong>{BattleChromeJA.ultra}</strong>', 1),
-              ('<strong>shift</strong>', '<strong>{BattleChromeJA.shiftAction}</strong>', 1),
-              ('<i class="fa fa-fast-forward" aria-hidden></i><br />Skip</button>', '<i class="fa fa-fast-forward" aria-hidden></i><br />{BattleChromeJA.skip}</button>', 1),
-              ('<i class="fa fa-fast-forward" aria-hidden></i><br />Skip animation</button>', '<i class="fa fa-fast-forward" aria-hidden></i><br />{BattleChromeJA.skipAnimation}</button>', 1),
-              ('<strong>Battle</strong>', '<strong>{BattleChromeJA.battleTab}</strong>', 3),
-              ('<strong>Switch</strong>', '<strong>{BattleChromeJA.switchTab}</strong>', 3),
-              ('<button data-cmd="/shift">Move to center</button>', '<button data-cmd="/shift">{BattleChromeJA.moveToCenter}</button>', 2),
-              ('<h3 class="moveselect">Battle</h3>', '<h3 class="moveselect">{BattleChromeJA.battleTab}</h3>', 1),
-              ('<h3 class="shiftselect">Shift</h3>', '<h3 class="shiftselect">{BattleChromeJA.shiftHeading}</h3>', 1),
-              ('<h3 class="switchselect">Switch</h3>', '<h3 class="switchselect">{BattleChromeJA.switchTab}</h3>', 2),
-              ('<strong>Team</strong>', '<strong>{BattleChromeJA.teamTab}</strong>', 2),
-              ('<h3 class="switchselect">Team so far</h3>', '<h3 class="switchselect">{BattleChromeJA.teamSoFar}</h3>', 1),
-              ('<h3 class="switchselect">Team so far</h3>', '<h3 class="switchselect">{BattleChromeJA.teamSoFar}</h3>', 1),
-              ('<button data-cmd="/cancel" class="button">Cancel</button>', '<button data-cmd="/cancel" class="button">{SharedChromeJA.cancel}</button>', 1),
-              ('<i class="fa fa-download" aria-hidden></i> Download replay', '<i class="fa fa-download" aria-hidden></i> {BattleChromeJA.downloadReplay}', 1),
-              ('<i class="fa fa-upload" aria-hidden></i> Upload and share replay', '<i class="fa fa-upload" aria-hidden></i> {BattleChromeJA.uploadAndShareReplay}', 1),
-              ('<i class="fa fa-undo" aria-hidden></i><br />Replay', '<i class="fa fa-undo" aria-hidden></i><br />{BattleChromeJA.replay}', 1),
-              ('<strong>Main menu</strong><br /><small>(closes this battle)</small>', '<strong>{BattleChromeJA.mainMenu}</strong><br /><small>{BattleChromeJA.closesThisBattle}</small>', 1),
-              ('<strong>Rematch</strong><br /><small>(closes this battle)</small>', '<strong>{BattleChromeJA.rematch}</strong><br /><small>{BattleChromeJA.closesThisBattle}</small>', 1),
-          ]
-          for old, new, expected in replacements:
-              panel = replace_exact(panel, old, new, expected)
-
-          panel = replace_exact(panel,
-              '''\t\t\t{maybeDisabled && <p><em class="movewarning">
-\t\t\t\tYou <strong>might</strong> have some moves disabled, so you won't be able to cancel an attack!
-\t\t\t</em></p>}''',
-              '''\t\t\t{maybeDisabled && <p><em class="movewarning">
-\t\t\t\t{BattleChromeJA.you}{BattleChromeJA.maybeDisabledWarning}<strong>{BattleChromeJA.might}</strong>。
-\t\t\t</em></p>}''')
-          panel = replace_exact(panel,
-              '''\t\t\t{maybeLocked && <p><em class="movewarning">
-\t\t\t\tYou <strong>might</strong> be locked into a move. {}
-\t\t\t\t<button class="button" data-cmd="/choose testfight">Try Fight button</button> {}
-\t\t\t\t(prevents switching if you're locked)
-\t\t\t</em></p>}''',
-              '''\t\t\t{maybeLocked && <p><em class="movewarning">
-\t\t\t\t{BattleChromeJA.you}{BattleChromeJA.maybeLockedWarning}<strong>{BattleChromeJA.might}</strong>。 {}
-\t\t\t\t<button class="button" data-cmd="/choose testfight">{BattleChromeJA.tryFightButton}</button> {}
-\t\t\t\t{BattleChromeJA.lockedSwitchWarning}
-\t\t\t</em></p>}''')
-          panel = replace_exact(panel,
-              "{moveRequest.gigantamax ? 'Gigantamax' : 'Dynamax'}",
-              "{moveRequest.gigantamax ? SharedChromeJA.gigantamax : BattleChromeJA.dynamax}")
-          panel = replace_exact(panel,
-              '''\t\t\t{maybeTrapped && <em class="movewarning">
-\t\t\t\tYou <strong>might</strong> be trapped, so you won't be able to cancel a switch!<br />
-\t\t\t</em>}
-\t\t\t{trapped && <em class="movewarning">
-\t\t\t\tYou're <strong>trapped</strong> and cannot switch!<br />
-\t\t\t</em>}
-\t\t\t{isReviving && <em class="movewarning">
-\t\t\t\tChoose a pokemon to revive!<br />
-\t\t\t</em>}''',
-              '''\t\t\t{maybeTrapped && <em class="movewarning">
-\t\t\t\t{BattleChromeJA.you}{BattleChromeJA.maybeTrappedWarning}<strong>{BattleChromeJA.might}</strong>。<br />
-\t\t\t</em>}
-\t\t\t{trapped && <em class="movewarning">
-\t\t\t\t{BattleChromeJA.youAre}<strong>{BattleChromeJA.trapped}</strong>{BattleChromeJA.cannotSwitchWarning}<br />
-\t\t\t</em>}
-\t\t\t{isReviving && <em class="movewarning">
-\t\t\t\t{BattleChromeJA.chooseRevive}<br />
-\t\t\t</em>}''')
-          panel = replace_exact(panel,
-              '{pokemon.name} should use <strong>{moveName}</strong> at where?',
-              '{pokemon.name}{BattleChromeJA.shouldUse}<strong>{moveName}</strong>{BattleChromeJA.atWhere}',
-              2)
-          panel = replace_exact(panel,
-              'What will <strong>{pokemon.name}</strong> do?',
-              '{BattleChromeJA.whatWill}<strong>{pokemon.name}</strong>{BattleChromeJA.do}',
-              2)
-          panel = replace_exact(panel,
-              'Who will replace <strong>{pokemon.name}</strong>?',
-              '<strong>{pokemon.name}</strong>{BattleChromeJA.whoWillReplace}',
-              2)
-          panel = replace_exact(panel,
-              '''\t\tconst chooseLabel = choices.alreadySwitchingIn.length <= 0 ?
-\t\t\t`lead` : `slot ${choices.alreadySwitchingIn.length + 1}`;''',
-              '''\t\tconst chooseLabel = choices.alreadySwitchingIn.length <= 0 ?
-\t\t\tBattleChromeJA.leadSlot : BattleChromeJA.numberedSlot.replace(
-\t\t\t\t'${…}', String(choices.alreadySwitchingIn.length + 1)
-\t\t\t);''')
-          panel = replace_exact(panel, '<h3 class="switchselect">Choose {chooseLabel}</h3>', '<h3 class="switchselect">{chooseLabel}{BattleChromeJA.choose}</h3>', 1)
-          panel = replace_exact(panel,
-              '''\t\t\t\t<h3 class="switchselect">
-\t\t\t\t\tChoose {chooseLabel}
-\t\t\t\t</h3>''',
-              '''\t\t\t\t<h3 class="switchselect">
-\t\t\t\t\t{chooseLabel}{BattleChromeJA.choose}
-\t\t\t\t</h3>''')
-
-          before_cmds = re.findall(r'data-cmd=(?:"[^"]*"|\{[^\n>]*\})', original_panel)
-          after_cmds = re.findall(r'data-cmd=(?:"[^"]*"|\{[^\n>]*\})', panel)
-          if before_cmds != after_cmds:
-              raise SystemExit('data-cmd attributes changed')
-          before_tooltips = re.findall(r'data-tooltip=(?:"[^"]*"|\{[^\n>]*\})', original_panel)
-          after_tooltips = re.findall(r'data-tooltip=(?:"[^"]*"|\{[^\n>]*\})', panel)
-          if before_tooltips != after_tooltips:
-              raise SystemExit('data-tooltip attributes changed')
-          panel_path.write_text(panel)
-
-          test_path = Path('test/client-ui-ja-strings.js')
-          test_source = test_path.read_text()
-          test_source = replace_exact(test_source,
-              "\t{ file: 'play.pokemonshowdown.com/src/panel-battle.tsx' },",
-              "\t{\n\t\tfile: 'play.pokemonshowdown.com/src/panel-battle.tsx',\n\t\tappliedGroups: ['BattleChromeSources', 'SharedChromeSources'],\n\t},")
-          start = test_source.index('function scanInventorySource() {')
-          end = test_source.index('\nfunction readFrameworkSources()', start)
-          new_scan = '''function scanInventorySource(groups) {
-\tconst entries = [];
-\tfor (const target of TARGETS) {
-\t\tconst filePath = path.join(ROOT, target.file);
-\t\tconst sourceFile = ts.createSourceFile(
-\t\t\tfilePath,
-\t\t\tfs.readFileSync(filePath, 'utf8'),
-\t\t\tts.ScriptTarget.Latest,
-\t\t\ttrue,
-\t\t\tts.ScriptKind.TSX
-\t\t);
-\t\tfunction addText(rawText) {
-\t\t\tconst text = normalizeText(rawText);
-\t\t\tif (text && hasEnglish(text)) entries.push(text);
-\t\t}
-\t\tfunction addAppliedReference(node) {
-\t\t\tif (!target.appliedGroups || !ts.isPropertyAccessExpression(node) || !ts.isIdentifier(node.expression)) {
-\t\t\t\treturn;
-\t\t\t}
-\t\t\tconst groupName = node.expression.text.replace(/JA$/, 'Sources');
-\t\t\tif (!target.appliedGroups.includes(groupName)) return;
-\t\t\tconst group = groups.get(groupName);
-\t\t\tassert.ok(group, `${target.file}: missing ${groupName}`);
-\t\t\tconst entry = group.find(candidate => candidate.key === node.name.text);
-\t\t\tassert.ok(entry, `${target.file}: unknown ${node.expression.text}.${node.name.text}`);
-\t\t\tentries.push(entry.english);
-\t\t}
-\t\tfunction visit(node) {
-\t\t\tif (ts.isJsxText(node)) {
-\t\t\t\taddText(node.getText(sourceFile));
-\t\t\t} else if (
-\t\t\t\tts.isJsxExpression(node) && node.expression &&
-\t\t\t\t(ts.isJsxElement(node.parent) || ts.isJsxFragment(node.parent))
-\t\t\t) {
-\t\t\t\tfor (const text of renderedExpressionStrings(node.expression)) addText(text);
-\t\t\t} else if (ts.isJsxAttribute(node)) {
-\t\t\t\tconst name = jsxAttributeName(node);
-\t\t\t\tif (name === 'placeholder' || name === 'title') {
-\t\t\t\t\tconst openingElement = node.parent.parent;
-\t\t\t\t\tif (name === 'title' && openingElementHasDataTooltip(openingElement)) {
-\t\t\t\t\t\tts.forEachChild(node, visit);
-\t\t\t\t\t\treturn;
-\t\t\t\t\t}
-\t\t\t\t\tif (node.initializer && ts.isStringLiteral(node.initializer)) {
-\t\t\t\t\t\taddText(node.initializer.text);
-\t\t\t\t\t} else if (
-\t\t\t\t\t\tnode.initializer && ts.isJsxExpression(node.initializer) &&
-\t\t\t\t\t\tnode.initializer.expression
-\t\t\t\t\t) {
-\t\t\t\t\t\tconst text = staticText(node.initializer.expression);
-\t\t\t\t\t\tif (text !== null) addText(text);
-\t\t\t\t\t}
-\t\t\t\t}
-\t\t\t} else if (ts.isCallExpression(node)) {
-\t\t\t\tcollectNotify(node, addText);
-\t\t\t}
-\t\t\taddAppliedReference(node);
-\t\t\tts.forEachChild(node, visit);
-\t\t}
-\t\tfor (const root of targetRoots(sourceFile, target)) visit(root);
-\t}
-\treturn entries;
-}
-'''
-          test_source = test_source[:start] + new_scan + test_source[end:]
-          test_source = replace_exact(test_source,
-              '''test('covers every Phase 3 UI chrome inventory string exactly once', () => {
-\tconst inventoryEntries = scanInventorySource();
-\tconst inventoryStrings = new Set(inventoryEntries);
-\tconst { source, groups } = readFrameworkSources();
-\tassert.equal(inventoryEntries.length, 319);
-\tassert.equal(inventoryStrings.size, 227);''',
-              '''test('covers every Phase 3 UI chrome inventory string exactly once', () => {
-\tconst { source, groups } = readFrameworkSources();
-\tconst inventoryEntries = scanInventorySource(groups);
-\tconst inventoryStrings = new Set(inventoryEntries);
-\tassert.equal(inventoryEntries.length, 325);
-\tassert.equal(inventoryStrings.size, 233);''')
-          test_source = replace_exact(test_source,
-              '\tassert.equal(frameworkEntries.length, 227);\n\tassert.equal(frameworkStrings.size, 227,',
-              '\tassert.equal(frameworkEntries.length, 233);\n\tassert.equal(frameworkStrings.size, 233,')
-          test_path.write_text(test_source)
+          source = Path('/tmp/t3-05-original.yml').read_text()
+          marker = "          python3 - <<'PY'\n"
+          start = source.index(marker)
+          end = source.index("          PY\n", start) + len("          PY\n")
+          block = source[start:end]
+          script = '\n'.join(line[10:] if line.startswith('          ') else line for line in block.splitlines()) + '\n'
+          Path('/tmp/t3-05-apply.sh').write_text(script)
           PY
+          bash /tmp/t3-05-apply.sh
       - name: Install dependencies
         run: npm ci
       - name: Build and test
@@ -345,4 +49,4 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add play.pokemonshowdown.com/src/client-ui-ja-strings.ts play.pokemonshowdown.com/src/panel-battle.tsx test/client-ui-ja-strings.js .github/workflows/t3-05-apply.yml
           git commit -m "Apply Japanese battle chrome"
-          git push origin HEAD:${{ github.ref_name }}
+          git push origin HEAD:${{ github.head_ref }}
