@@ -34,11 +34,12 @@ jobs:
           end = source.index("          PY\n", start) + len("          PY\n")
           block = source[start:end]
           script = '\n'.join(line[10:] if line.startswith('          ') else line for line in block.splitlines()) + '\n'
-          script = script.replace(
-              "('<strong>Battle</strong>', '<strong>{BattleChromeJA.battleTab}</strong>', 3),",
-              "('<strong>Battle</strong>', '<strong>{BattleChromeJA.battleTab}</strong>', 2),"
-          )
-          duplicate = "              ('<h3 class=\"switchselect\">Team so far</h3>', '<h3 class=\"switchselect\">{BattleChromeJA.teamSoFar}</h3>', 1),\n"
+          battle_old = "('<strong>Battle</strong>', '<strong>{BattleChromeJA.battleTab}</strong>', 3),"
+          battle_new = "('<strong>Battle</strong>', '<strong>{BattleChromeJA.battleTab}</strong>', 2),"
+          if script.count(battle_old) != 1:
+              raise SystemExit('unexpected Battle replacement script')
+          script = script.replace(battle_old, battle_new)
+          duplicate = "    ('<h3 class=\"switchselect\">Team so far</h3>', '<h3 class=\"switchselect\">{BattleChromeJA.teamSoFar}</h3>', 1),\n"
           if script.count(duplicate) != 2:
               raise SystemExit('unexpected Team so far replacement script')
           script = script.replace(duplicate + duplicate, duplicate.replace(', 1),', ', 2),'))
