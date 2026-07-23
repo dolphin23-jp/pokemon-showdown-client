@@ -240,7 +240,7 @@ test('keeps T3-01 and T3-02 protocol inputs immutable while rendering Japanese t
 		},
 		{
 			line: '|-block|p1a: Mimi|ability: Disguise',
-			expected: '[[Mimiのばけのかわ]]\n  ばけのかわが身代わりになった！\n',
+			expected: '[Mimiのばけのかわ]\n  ばけのかわが身代わりになった！\n',
 		},
 		{
 			line: '|detailschange|p1a: Mimi|Mimikyu-Busted, L50|[from] ability: Disguise',
