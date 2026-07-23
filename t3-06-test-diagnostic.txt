@@ -1,0 +1,28 @@
+status=1
+
+> pokemon-showdown-client@0.11.2 test
+> npm run build && echo "tsc... \c" && tsc && echo "DONE
+> eslint... \c" && eslint --cache --cache-location caches/eslintcache.json --max-warnings 0 && echo "DONE" && node --test test/*.js
+
+
+> pokemon-showdown-client@0.11.2 build
+> node build && npm run generate-japanese-display-names
+
+config.js does not exist. Creating one with default settings...
+Updating version... DONE
+Compiling TS files... (49 files in 7.284s) DONE
+Copying old client files... DONE
+Updating cachebuster and URLs... and news... DONE
+
+> pokemon-showdown-client@0.11.2 generate-japanese-display-names
+> node build-tools/generate-japanese-display-names.js
+
+Generated Japanese display names (species=1025, moves=919, abilities=311, items=2115)
+tsc... DONE
+eslint... 
+/home/runner/work/pokemon-showdown-client/pokemon-showdown-client/play.pokemonshowdown.com/src/forfeit-dialog-ja.ts
+  32:6  error  Prefer using an optional chain expression instead, as it's more concise and easier to read  @typescript-eslint/prefer-optional-chain
+
+✖ 1 problem (1 error, 0 warnings)
+  1 error and 0 warnings potentially fixable with the `--fix` option.
+
