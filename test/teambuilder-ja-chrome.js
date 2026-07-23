@@ -30,3 +30,20 @@ test('keeps Team Import/Export UI in English', () => {
 	assert.match(source, /Import\/Export/);
 	assert.match(source, /Paste exported teams, pokepaste URLs, or JSON here/);
 });
+
+
+test('keeps all Team Import/Export controls in English', () => {
+	const source = TARGETS.map(file => fs.readFileSync(path.join(ROOT, file), 'utf8')).join('\n');
+	const panel = fs.readFileSync(
+		path.join(ROOT, 'play.pokemonshowdown.com/src/panel-teambuilder.tsx'),
+		'utf8'
+	);
+	assert.match(source, /Import\/Export/);
+	assert.match(source, /Paste exported teams, pokepaste URLs, or JSON here/);
+	assert.match(panel, /> Back/);
+	assert.match(panel, /Save \(not allowed for partial exports\)/);
+	assert.match(panel, /> Save changes/);
+	assert.match(panel, /> Backup/);
+	assert.match(panel, /' search results'/);
+	assert.match(panel, /' folder'/);
+});

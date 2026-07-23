@@ -779,13 +779,13 @@ class TeambuilderPanel extends PSRoomPanel<TeambuilderRoom> {
 			return <div class="teampane">
 				<p>
 					<button data-cmd="/backup" class="button">
-						<i class="fa fa-caret-left" aria-hidden></i> {SharedChromeJA.back}
+						<i class="fa fa-caret-left" aria-hidden></i> Back
 					</button> {}
 					{room.exportMode !== true && <button class="button" disabled>
-						<i class="fa fa-save" aria-hidden></i> {TeambuilderListChromeJA.saveNotAllowedForPartialExports}
+						<i class="fa fa-save" aria-hidden></i> Save (not allowed for partial exports)
 					</button>}
 					{room.exportMode === true && <button onClick={this.saveExport} class="button">
-						<i class="fa fa-save" aria-hidden></i> {TeambuilderListChromeJA.saveChanges}
+						<i class="fa fa-save" aria-hidden></i> Save changes
 					</button>}
 				</p>
 				<PSTextarea
@@ -929,8 +929,8 @@ class TeambuilderPanel extends PSRoomPanel<TeambuilderRoom> {
 			</p>
 			<p>
 				<button data-cmd="/backup" class="button">
-					<i class="fa fa-file-code-o" aria-hidden></i> {TeambuilderListChromeJA.backup}
-					{room.searchTerms.length ? TeambuilderListChromeJA.searchResults : room.curFolder ? TeambuilderListChromeJA.folder : ''}
+					<i class="fa fa-file-code-o" aria-hidden></i> Backup
+					{room.searchTerms.length ? ' search results' : room.curFolder ? ' folder' : ''}
 				</button>
 			</p>
 		</div>;
