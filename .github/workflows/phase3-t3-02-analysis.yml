@@ -1,30 +1,43 @@
-name: Phase 3 T3-02 move-text analysis
+name: Phase 3 T3-02 validation
 
 on:
   pull_request:
     paths:
+      - play.pokemonshowdown.com/src/battle-text-ja.js
       - build-tools/analyze-phase3-t3-02.mjs
+      - build-tools/integrate-phase3-t3-02.mjs
+      - build-tools/phase3-t3-02-battle-text.fragment.js
       - .github/workflows/phase3-t3-02-analysis.yml
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  analyze:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - name: Check out client branch
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
           path: client
+
+      - name: Check out pre-T3-02 client baseline
+        uses: actions/checkout@v4
+        with:
+          repository: dolphin23-jp/pokemon-showdown-client
+          ref: 4bfbe1b8e2e03115151bb39af585eda2152c58cb
+          fetch-depth: 1
+          path: baseline-client
 
       - name: Check out T3-01 server baseline
         uses: actions/checkout@v4
         with:
           repository: dolphin23-jp/pokemon-showdown
           ref: master
+          fetch-depth: 1
           path: server
 
       - name: Set up Node.js
@@ -32,35 +45,185 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: client/package-lock.json
+          cache-dependency-path: |
+            client/package-lock.json
+            server/package-lock.json
 
-      - name: Install client dependencies
-        run: npm ci --prefix client
-
-      - name: Capture Champions-template definitions
+      - name: Install dependencies
         run: |
-          grep -n -B 8 -A 4 'champions' server/data/text/moves.ts \
-            > "$RUNNER_TEMP/phase-3-t3-02-champions-context.txt" || true
+          npm ci --prefix client
+          npm ci --prefix server
 
-      - name: Extract T3-02 move templates
+      - name: Extract exact T3-02 target set
         run: |
-          set +e
           node client/build-tools/analyze-phase3-t3-02.mjs \
             server \
-            "$RUNNER_TEMP/phase-3-t3-02-targets.json" \
-            >"$RUNNER_TEMP/phase-3-t3-02-analysis.log" 2>&1
-          status=$?
-          cat "$RUNNER_TEMP/phase-3-t3-02-analysis.log"
-          echo "$status" > "$RUNNER_TEMP/phase-3-t3-02-analysis.status"
-          exit 0
+            "$RUNNER_TEMP/phase-3-t3-02-targets.json"
+          node <<'NODE'
+          const fs = require('fs');
+          const data = JSON.parse(fs.readFileSync(
+            process.env.RUNNER_TEMP + '/phase-3-t3-02-targets.json', 'utf8'
+          ));
+          const expectedMetadata = [
+            'belch.champions', 'covet.champions', 'direclaw.champions', 'fakeout.champions',
+            'firstimpression.champions', 'freezedry.champions', 'healer.champions',
+            'ironhead.champions', 'knockoff.champions', 'makeitrain.champions',
+            'moonblast.champions', 'ragefist.champions', 'saltcure.champions',
+            'slowbronite.champions', 'stuffcheeks.champions', 'switcheroo.champions',
+            'thief.champions', 'toxicthread.champions', 'trick.champions',
+            'unseenfist.champions',
+          ];
+          const actualMetadata = data.unmatched.map(x => `${x.namespace}.${x.key}`).sort();
+          if (data.totalTargets !== 302 || data.targetNamespaces !== 188) {
+            throw new Error(`Unexpected T3-02 target shape: ${data.totalTargets}/${data.targetNamespaces}`);
+          }
+          if (JSON.stringify(actualMetadata) !== JSON.stringify(expectedMetadata.sort())) {
+            throw new Error(`Unexpected non-text metadata: ${actualMetadata.join(', ')}`);
+          }
+          console.log('Verified 302 runtime move templates and 20 Champions metadata false positives.');
+          NODE
 
-      - name: Upload T3-02 analysis
+      - name: Rebuild canonical battle text from T3-01 baseline
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        working-directory: client
+        env:
+          HEAD_BRANCH: ${{ github.head_ref }}
+        run: |
+          cp ../baseline-client/play.pokemonshowdown.com/src/battle-text-ja.js \
+            play.pokemonshowdown.com/src/battle-text-ja.js
+          node build-tools/integrate-phase3-t3-02.mjs
+          git add play.pokemonshowdown.com/src/battle-text-ja.js
+          if git diff --cached --quiet; then
+            echo "Canonical T3-02 battle text already matches."
+          else
+            git config user.name github-actions[bot]
+            git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+            git commit -m "Add Phase 3 move battle-text coverage"
+            git push origin "HEAD:${HEAD_BRANCH}"
+          fi
+
+      - name: Verify additions, placeholders, and baseline preservation
+        working-directory: client
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import ts from 'typescript';
+
+          const targets = JSON.parse(fs.readFileSync(
+            process.env.RUNNER_TEMP + '/phase-3-t3-02-targets.json', 'utf8'
+          ));
+
+          function readBattleText(filePath) {
+            const text = fs.readFileSync(filePath, 'utf8');
+            const file = ts.createSourceFile(filePath, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+            if (file.parseDiagnostics.length) throw new Error(`Syntax error in ${filePath}`);
+            let object = null;
+            function visit(node) {
+              if (object) return;
+              if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) &&
+                node.name.text === 'JAPANESE_BATTLE_TEXT') {
+                object = node.initializer;
+                return;
+              }
+              ts.forEachChild(node, visit);
+            }
+            visit(file);
+            if (!object || !ts.isObjectLiteralExpression(object)) throw new Error(`Missing BattleText in ${filePath}`);
+            function name(node) {
+              if (ts.isIdentifier(node) || ts.isStringLiteral(node) ||
+                ts.isNoSubstitutionTemplateLiteral(node)) return node.text;
+              throw new Error(`Unsupported key ${node.getText(file)}`);
+            }
+            function read(node) {
+              const result = new Map();
+              for (const property of node.properties) {
+                if (!ts.isPropertyAssignment(property)) continue;
+                const key = name(property.name);
+                if (ts.isObjectLiteralExpression(property.initializer)) {
+                  result.set(key, read(property.initializer));
+                } else if (ts.isStringLiteral(property.initializer) ||
+                  ts.isNoSubstitutionTemplateLiteral(property.initializer)) {
+                  result.set(key, property.initializer.text);
+                }
+              }
+              return result;
+            }
+            return read(object);
+          }
+
+          const current = readBattleText('play.pokemonshowdown.com/src/battle-text-ja.js');
+          const baseline = readBattleText('../baseline-client/play.pokemonshowdown.com/src/battle-text-ja.js');
+          for (const [namespace, fields] of baseline) {
+            const currentFields = current.get(namespace);
+            if (!(fields instanceof Map) || !(currentFields instanceof Map)) {
+              throw new Error(`Existing namespace changed shape: ${namespace}`);
+            }
+            for (const [key, value] of fields) {
+              if (currentFields.get(key) !== value) {
+                throw new Error(`Existing Japanese entry changed: ${namespace}.${key}`);
+              }
+            }
+          }
+          const placeholder = /\[[A-Z][A-Z0-9]*\]/g;
+          for (const target of targets.targets) {
+            const value = current.get(target.namespace)?.get(target.key);
+            if (typeof value !== 'string') {
+              throw new Error(`Missing T3-02 translation: ${target.namespace}.${target.key}`);
+            }
+            const actual = value.match(placeholder) || [];
+            if (JSON.stringify(actual) !== JSON.stringify(target.placeholders)) {
+              throw new Error(
+                `${target.namespace}.${target.key}: expected ${JSON.stringify(target.placeholders)}, ` +
+                `got ${JSON.stringify(actual)}`
+              );
+            }
+          }
+          console.log('Verified 302 additions, exact placeholders, and unchanged T3-01 baseline.');
+          NODE
+
+      - name: Regenerate corrected Phase 3 inventory
+        run: |
+          CLIENT_SHA="$(git -C client rev-parse HEAD)"
+          node -e '
+            const fs = require("fs");
+            const pinPath = "server/config/pokemon-showdown-client.json";
+            const pin = JSON.parse(fs.readFileSync(pinPath, "utf8"));
+            pin.commit = process.argv[1];
+            fs.writeFileSync(pinPath, JSON.stringify(pin, null, 2) + "\n");
+
+            const generatorPath = "server/scripts/generate-phase3-battle-text-inventory.mjs";
+            let source = fs.readFileSync(generatorPath, "utf8");
+            const oldCode = "\t\t} else {\n\t\t\ttextEntry.add(key);\n\t\t}";
+            const newCode = "\t\t} else if (!(nested instanceof Map)) {\n\t\t\ttextEntry.add(key);\n\t\t}";
+            if (!source.includes(oldCode)) throw new Error("assignData correction marker not found");
+            source = source.replace(oldCode, newCode);
+            fs.writeFileSync(generatorPath, source);
+          ' "$CLIENT_SHA"
+          node server/scripts/generate-phase3-battle-text-inventory.mjs \
+            --server-root server \
+            --client-root client \
+            --output "$RUNNER_TEMP/phase-3-battle-text-inventory.json"
+          node <<'NODE'
+          const fs = require('fs');
+          const inventory = JSON.parse(fs.readFileSync(
+            process.env.RUNNER_TEMP + '/phase-3-battle-text-inventory.json', 'utf8'
+          ));
+          if (inventory.totalMissing !== 0 || Object.keys(inventory.byNamespace).length !== 0) {
+            throw new Error(`Expected zero missing move templates, got ${inventory.totalMissing}`);
+          }
+          console.log('Verified complete Japanese BattleText coverage: 0 missing keys.');
+          NODE
+
+      - name: Run client tests
+        working-directory: client
+        run: npm test
+
+      - name: Upload T3-02 validation evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: phase-3-t3-02-targets
+          name: phase-3-t3-02-validation
           path: |
             ${{ runner.temp }}/phase-3-t3-02-targets.json
-            ${{ runner.temp }}/phase-3-t3-02-analysis.log
-            ${{ runner.temp }}/phase-3-t3-02-analysis.status
-            ${{ runner.temp }}/phase-3-t3-02-champions-context.txt
+            ${{ runner.temp }}/phase-3-battle-text-inventory.json
           if-no-files-found: warn
