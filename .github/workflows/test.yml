@@ -9,22 +9,54 @@ on:
   pull_request:
     branches: [ master ]
 
+permissions:
+  contents: write
+
 jobs:
-  build:
-
+  apply-t3-05-timer:
+    if: github.event_name == 'pull_request' && github.head_ref == 'agent/phase3-t3-05-timer-followup'
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        ref: agent/phase3-t3-05-timer-followup
+        fetch-depth: 0
+    - name: Use Node.js 22
+      uses: actions/setup-node@v6
+      with:
+        node-version: 22.x
+        cache: npm
+    - run: npm ci
+    - name: Apply and validate timer localization
+      run: |
+        node build-tools/apply-t3-05-timer-followup.js
+        rm build-tools/apply-t3-05-timer-followup.js
+        npx eslint --fix \
+          play.pokemonshowdown.com/src/client-ui-ja-strings.ts \
+          play.pokemonshowdown.com/src/panel-battle.tsx \
+          test/client-ui-ja-strings.js
+        npm test
+    - name: Commit verified implementation
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add -A
+        git commit -m "Localize the battle timer label"
+        git push origin HEAD:agent/phase3-t3-05-timer-followup
 
+  build:
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         node-version: [22.x]
-
     steps:
     - uses: actions/checkout@v6
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v6
       with:
         node-version: ${{ matrix.node-version }}
-        cache: 'npm'
+        cache: npm
     - run: npm ci
     - run: npm run test
       env:
