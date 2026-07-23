@@ -80,7 +80,7 @@ jobs:
           )
           replace(
               '<button class="button" data-cmd="/ffto end"><i class="fa fa-fast-forward" aria-hidden></i><br />{BattleChromeJA.skipAnimation}</button>',
-              '<button class="button" data-cmd="/ffto end">\n\t\t\t\t\t<i class="fa fa-fast-forward" aria-hidden></i><br />{BattleChromeJA.skipAnimation}\n\t\t\t\t</button>'
+              '<button class="button" data-cmd="/ffto end">\n\t\t\t\t\t<i class="fa fa-fast-forward" aria-hidden></i><br />\n\t\t\t\t\t{BattleChromeJA.skipAnimation}\n\t\t\t\t</button>'
           )
           replace(
               '<button class="button move-button cur"><strong>{BattleChromeJA.battleTab}</strong></button> {}',
@@ -119,6 +119,8 @@ jobs:
           PY
       - name: Install dependencies
         run: npm ci
+      - name: Apply automatic lint fixes
+        run: npx eslint --fix play.pokemonshowdown.com/src/panel-battle.tsx
       - name: Build and test
         shell: bash
         run: |
@@ -130,7 +132,7 @@ jobs:
             cp /tmp/t3-05-test.log t3-05-test-error.log
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add t3-05-test-error.log
+            git add -f t3-05-test-error.log
             git commit -m "Record T3-05 test failure"
             git push origin HEAD:${{ github.head_ref }}
             cat /tmp/t3-05-test.log
