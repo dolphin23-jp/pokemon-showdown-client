@@ -250,8 +250,8 @@ test('covers every Phase 3 UI chrome inventory string exactly once', () => {
 	const { source, groups } = readFrameworkSources();
 	const inventoryEntries = scanInventorySource(groups);
 	const inventoryStrings = new Set(inventoryEntries);
-	assert.equal(inventoryEntries.length, 325);
-	assert.equal(inventoryStrings.size, 233);
+	assert.equal(inventoryEntries.length, 326);
+	assert.equal(inventoryStrings.size, 234);
 	assert.deepEqual(
 		[...groups.keys()].sort(),
 		[
@@ -267,8 +267,8 @@ test('covers every Phase 3 UI chrome inventory string exactly once', () => {
 
 	const frameworkEntries = [...groups.values()].flat();
 	const frameworkStrings = new Set(frameworkEntries.map(entry => entry.english));
-	assert.equal(frameworkEntries.length, 233);
-	assert.equal(frameworkStrings.size, 233, 'an English source string is assigned to more than one key');
+	assert.equal(frameworkEntries.length, 234);
+	assert.equal(frameworkStrings.size, 234, 'an English source string is assigned to more than one key');
 	assert.deepEqual(
 		[...frameworkStrings].sort(),
 		[...inventoryStrings].sort()
