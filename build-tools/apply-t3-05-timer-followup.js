@@ -21,7 +21,7 @@ replaceOne(
 replaceOne(
 	'play.pokemonshowdown.com/src/panel-battle.tsx',
 	"\t\tlet time = 'Timer';",
-	"\t\tlet time = BattleChromeJA.timer;"
+	"\t\tlet time: string = BattleChromeJA.timer;"
 );
 replaceOne('test/client-ui-ja-strings.js', 'assert.equal(inventoryEntries.length, 325);', 'assert.equal(inventoryEntries.length, 326);');
 replaceOne('test/client-ui-ja-strings.js', 'assert.equal(inventoryStrings.size, 233);', 'assert.equal(inventoryStrings.size, 234);');
